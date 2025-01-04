@@ -692,11 +692,11 @@ async def upgrade(ctx):
                 if current_stat < 50:
                     points_needed = 4 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 10 if stat_col in ["combat", "FDD"] else 14 if stat_col in ["haki_armement", "haki_observation"] else 18
                 elif current_stat < 100:
-                    points_needed = 6 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 12 if stat_col in ["combat", "FDD"] else 16 if stat_col in ["haki_armement", "haki_observation"] else 20
-                elif current_stat < 150:
                     points_needed = 8 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 14 if stat_col in ["combat", "FDD"] else 18 if stat_col in ["haki_armement", "haki_observation"] else 22
+                elif current_stat < 150:
+                    points_needed = 12 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 18 if stat_col in ["combat", "FDD"] else 22 if stat_col in ["haki_armement", "haki_observation"] else 26
                 else:
-                    points_needed = 10 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 16 if stat_col in ["combat", "FDD"] else 20 if stat_col in ["haki_armement", "haki_observation"] else 25
+                    points_needed = 16 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 22 if stat_col in ["combat", "FDD"] else 26 if stat_col in ["haki_armement", "haki_observation"] else 30
 
                 # Vérification des points
                 if points >= points_needed:
