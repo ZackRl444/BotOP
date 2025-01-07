@@ -2583,6 +2583,19 @@ async def fouille(ctx):
 
     await ctx.send(embed=embed)
 
+@bot.command()
+async def singe(ctx):
+    try:
+        # Supprimer le message de la commande
+        await ctx.message.delete()
+        
+        # Envoyer l'image depuis une URL
+        image_url = "https://pbs.twimg.com/media/GS8nXGPWwAAA9eR.jpg"
+        await ctx.send(image_url)
+
+    except Exception as e:
+        print(f"Une erreur est survenue : {e}")
+
 # Charger les variables d'environnement du fichier .env
 load_dotenv()
 
