@@ -7,7 +7,7 @@ CREATE TABLE fdd_inventory (
             PRIMARY KEY (user_id, fdd_name),
             FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
         );
-INSERT INTO "fdd_inventory" VALUES(578171755366055936,'Tori Tori no mi, modï¿½le : Phoenix',NULL,'False');
+INSERT INTO "fdd_inventory" VALUES(578171755366055936,'Tori Tori no mi, modèle : Phoenix',NULL,'False');
 INSERT INTO "fdd_inventory" VALUES(578171755366055936,'Magu Magu no mi',NULL,'False');
 INSERT INTO "fdd_inventory" VALUES(578171755366055936,'Goro Goro no mi',NULL,'False');
 CREATE TABLE skills (
