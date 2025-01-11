@@ -33,3 +33,5 @@ jobs:
           git add inventory_backup.sql
           git commit -m "Backup database on deploy"
           git push
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}  # Utilisation du token d'accès personnel
