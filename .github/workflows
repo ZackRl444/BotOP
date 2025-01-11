@@ -28,7 +28,7 @@ jobs:
 
       - name: Commit and push the backup
         run: |
-          git config --global user.name zack
+          git config --global user.name ZackRl444
           git config --global user.email zigzag140708@gmail.com
           git add inventory_backup.sql
           git commit -m "Backup database on deploy"
