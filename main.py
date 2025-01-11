@@ -11,11 +11,13 @@ from discord.ui import Select, View
 import os
 from dotenv import load_dotenv
 from keep_alive import keep_alive
+import restore_db
 
 
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+restore_db.restore_database()
 
 print("aiosqlite is installed and working!")
 
