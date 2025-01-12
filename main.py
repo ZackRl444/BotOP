@@ -11,7 +11,6 @@ from discord.ui import Select, View
 import os
 from dotenv import load_dotenv
 from keep_alive import keep_alive
-import restore_db
 
 
 
