@@ -23,7 +23,7 @@ intents = discord.Intents().all()
 intents.message_content = True
 intents.members = True
 
-keep_alive()
+keep_alive.keep_alive()
 
 bot = commands.Bot(command_prefix='?', intents=intents)
 
