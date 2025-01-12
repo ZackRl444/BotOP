@@ -1,7 +1,12 @@
 from flask import Flask
 from threading import Thread
+from flask import send_file
 
 app = Flask('')
+
+@app.route('/download')
+def download_file():
+    return send_file('/workspace/inventory.db', as_attachment=True)
 
 @app.route('/')
 def home():
