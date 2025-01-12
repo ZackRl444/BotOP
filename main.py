@@ -5182,6 +5182,11 @@ async def fouille(ctx):
 
     await ctx.send(embed=embed)
 
+# Commande test
+@bot.command()
+async def test(ctx):
+    await ctx.send("Test réussi")
+
 @bot.command()
 async def singe(ctx):
     try:
