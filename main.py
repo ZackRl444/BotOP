@@ -110,25 +110,6 @@ async def on_ready():
 
 print("Répertoire de travail actuel:", os.getcwd())
 
-def backup_database():
-    # Définir le chemin de la base de données SQLite
-    db_path = 'database.db'
-    
-    # Vérifie si le fichier existe
-    if os.path.exists(db_path):
-        backup_path = '/workspace/backup_database.db'  # Le chemin de sauvegarde (peut être ajusté selon ton besoin)
-        
-        # Copier la base de données vers un fichier de sauvegarde
-        try:
-            shutil.copy(db_path, backup_path)
-            print(f"Backup successful! Your backup is available at: {backup_path}")
-        except Exception as e:
-            print(f"Error during backup: {e}")
-    else:
-        print(f"The database file '{db_path}' does not exist.")
-        
-backup_database()
-
 sabreur = {
     "Ittôryû": {
         "description": "Technique spéciale nécessitant l’usage d’un sabre. L'ittôryû est une compétence simple mais polyvalente, pouvant s’utiliser dans de nombreuses situations. Les techniques à un sabre sont des coups de lames renforcés, allant jusqu’à projeter des lames d’air tranchantes ou à trancher des matières solides comme du beurre. C’est une base primordiale pour les épéistes avant de créer leur style unique, ainsi que la source de nombreux dérivés."
@@ -256,6 +237,17 @@ skills_liste = {
     "Personnel": perso
 }
 
+# Localisation du fichier de base de données
+db_file = '/workspace/inventory.db'
+backup_file = '/workspace/inventory_backup.db'
+
+# Copier le fichier vers un fichier de sauvegarde
+shutil.copy(db_file, backup_file)
+
+# Si tu veux compresser ce fichier en .zip
+shutil.make_archive('/workspace/inventory_backup', 'zip', '/workspace', 'inventory.db')
+
+print(f"Backup créé : /workspace/inventory_backup.zip")
 
 @bot.command()
 async def setup(ctx, user: discord.User):
