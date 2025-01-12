@@ -23,6 +23,8 @@ intents = discord.Intents().all()
 intents.message_content = True
 intents.members = True
 
+keep_alive()
+
 bot = commands.Bot(command_prefix='?', intents=intents)
 
 elo_emoji = "<:Elo:1289528803462217748>"
@@ -5203,5 +5205,5 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 print("Le token Discord est :", TOKEN)
 
 
-keep_alive()
+
 bot.run(TOKEN)
