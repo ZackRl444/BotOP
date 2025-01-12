@@ -10,7 +10,7 @@ from discord import SelectOption, ui, Interaction, Embed
 from discord.ui import Select, View
 import os
 from dotenv import load_dotenv
-import keep_alive
+from keep_alive import keep_alive
 
 
 
@@ -23,7 +23,7 @@ intents = discord.Intents().all()
 intents.message_content = True
 intents.members = True
 
-keep_alive.keep_alive()
+keep_alive()
 
 bot = commands.Bot(command_prefix='?', intents=intents)
 
