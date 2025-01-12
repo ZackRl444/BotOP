@@ -107,6 +107,8 @@ async def on_ready():
         )''')
         await db.commit()
 
+print("Répertoire de travail actuel:", os.getcwd())
+
 sabreur = {
     "Ittôryû": {
         "description": "Technique spéciale nécessitant l’usage d’un sabre. L'ittôryû est une compétence simple mais polyvalente, pouvant s’utiliser dans de nombreuses situations. Les techniques à un sabre sont des coups de lames renforcés, allant jusqu’à projeter des lames d’air tranchantes ou à trancher des matières solides comme du beurre. C’est une base primordiale pour les épéistes avant de créer leur style unique, ainsi que la source de nombreux dérivés."
