@@ -5204,5 +5204,13 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 # Exemple d'utilisation
 print("Le token Discord est :", TOKEN)
 
+@bot.command()
+async def download_db(ctx):
+    """Commande pour télécharger la base de données brute"""
+    try:
+        await ctx.send("Voici la base de données actuelle :", file=discord.File(DB_PATH))
+    except Exception as e:
+        await ctx.send(f"Erreur lors de l'envoi de la base de données : {e}")
+
 keep_alive()
 bot.run(TOKEN)
