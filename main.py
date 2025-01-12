@@ -11,6 +11,7 @@ from discord.ui import Select, View
 import os
 from dotenv import load_dotenv
 from keep_alive import keep_alive
+import shutil
 
 
 
@@ -108,6 +109,25 @@ async def on_ready():
         await db.commit()
 
 print("Répertoire de travail actuel:", os.getcwd())
+
+def backup_database():
+    # Définir le chemin de la base de données SQLite
+    db_path = 'database.db'
+    
+    # Vérifie si le fichier existe
+    if os.path.exists(db_path):
+        backup_path = '/workspace/backup_database.db'  # Le chemin de sauvegarde (peut être ajusté selon ton besoin)
+        
+        # Copier la base de données vers un fichier de sauvegarde
+        try:
+            shutil.copy(db_path, backup_path)
+            print(f"Backup successful! Your backup is available at: {backup_path}")
+        except Exception as e:
+            print(f"Error during backup: {e}")
+    else:
+        print(f"The database file '{db_path}' does not exist.")
+        
+backup_database()
 
 sabreur = {
     "Ittôryû": {
