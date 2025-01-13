@@ -149,10 +149,6 @@ async def on_ready():
     except Exception as e:
         logging.error(f"Erreur lors de la connexion ou de la création des tables : {e}")
 
-
-# Démarre le bot
-bot.run('VOTRE_TOKEN')
-
     pool.close()
     await pool.wait_closed()
 
