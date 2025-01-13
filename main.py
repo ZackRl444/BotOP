@@ -26,28 +26,6 @@ bot = commands.Bot(command_prefix='?', intents=intents)
 
 elo_emoji = "<:Elo:1289528803462217748>"
 
-import asyncio
-import aiomysql
-import logging
-import discord
-from discord.ext import commands
-from dotenv import load_dotenv
-from keep_alive import keep_alive
-
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-print("aiomysql is installed and working!")
-
-intents = discord.Intents().all()
-intents.message_content = True
-intents.members = True
-
-keep_alive()
-
-bot = commands.Bot(command_prefix='?', intents=intents)
-
-elo_emoji = "<:Elo:1289528803462217748>"
-
 # Informations MySQL
 MYSQL_HOST = "sql209.infinityfree.com"
 MYSQL_USER = "if0_38099598"
