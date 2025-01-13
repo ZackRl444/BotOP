@@ -28,6 +28,7 @@ elo_emoji = "<:Elo:1289528803462217748>"
 
 # Informations MySQL
 MYSQL_HOST = "sql209.infinityfree.com"
+
 MYSQL_USER = "if0_38099598"
 MYSQL_PASSWORD = "4bhv2sctOAw"  # Remplacez par votre mot de passe réel
 MYSQL_DATABASE = "if0_38099598_bot_db"
@@ -148,8 +149,6 @@ loop.run_until_complete(test_connection())
 
 # Ajoutez vos autres commandes ou événements ici.
 
-
-print("Répertoire de travail actuel:", os.getcwd())
 
 sabreur = {
     "Ittôryû": {
