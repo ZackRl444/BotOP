@@ -26,99 +26,132 @@ bot = commands.Bot(command_prefix='?', intents=intents)
 
 elo_emoji = "<:Elo:1289528803462217748>"
 
+import asyncio
+import aiomysql
+import logging
+import discord
+from discord.ext import commands
+from dotenv import load_dotenv
+from keep_alive import keep_alive
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+print("aiomysql is installed and working!")
+
+intents = discord.Intents().all()
+intents.message_content = True
+intents.members = True
+
+keep_alive()
+
+bot = commands.Bot(command_prefix='?', intents=intents)
+
+elo_emoji = "<:Elo:1289528803462217748>"
+
 # Informations MySQL
 MYSQL_HOST = "sql209.infinityfree.com"
-
 MYSQL_USER = "if0_38099598"
-MYSQL_PASSWORD = "4bhv2sctOAw"  # Remplacez par votre mot de passe réel
+MYSQL_PASSWORD = "4bhv2sctOAw"
 MYSQL_DATABASE = "if0_38099598_bot_db"
 
 @bot.event
 async def on_ready():
     logging.info('Bot is ready.')
 
-    # Connexion à la base de données MySQL
-    pool = await aiomysql.create_pool(
-        host=MYSQL_HOST,
-        user=MYSQL_USER,
-        password=MYSQL_PASSWORD,
-        db=MYSQL_DATABASE,
-        port=3306
-    )
-    
-    async with pool.acquire() as conn:
-        async with conn.cursor() as cursor:
-            # Création des tables si elles n'existent pas déjà
-            await cursor.execute('''CREATE TABLE IF NOT EXISTS user_stats (
-                user_id BIGINT PRIMARY KEY,
-                force INT DEFAULT 5,
-                vitesse INT DEFAULT 5,
-                resistance INT DEFAULT 5,
-                endurance INT DEFAULT 5,
-                agilite INT DEFAULT 5,
-                combat INT DEFAULT 5,
-                FDD INT DEFAULT 0,
-                haki_armement INT DEFAULT 0,
-                haki_observation INT DEFAULT 0,
-                haki_rois INT DEFAULT 0,
-                points INT DEFAULT 0,
-                points_spent INT DEFAULT 0
-            )''')
-            await cursor.execute('''CREATE TABLE IF NOT EXISTS fdd_inventory (
-                user_id BIGINT,
-                fdd_name VARCHAR(255) UNIQUE,
-                description TEXT,
-                eaten ENUM('True', 'False') DEFAULT 'False',
-                PRIMARY KEY (user_id, fdd_name),
-                FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
-            )''')
-            await cursor.execute('''CREATE TABLE IF NOT EXISTS user_decorations (
-                user_id BIGINT PRIMARY KEY,
-                thumbnail_url TEXT,
-                icon_url TEXT,
-                main_url TEXT,
-                color VARCHAR(7) DEFAULT '#FFBF66',
-                ost_url TEXT,
-                FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
-            )''')
-            await cursor.execute('''CREATE TABLE IF NOT EXISTS skills (
-                user_id BIGINT,
-                ittoryu INT DEFAULT 0,
-                nitoryu INT DEFAULT 0,
-                santoryu INT DEFAULT 0,
-                mutoryu INT DEFAULT 0,
-                style_du_renard_de_feu INT DEFAULT 0,
-                danse_de_lepee_des_remous INT DEFAULT 0,
-                style_de_combat_tireur_delite INT DEFAULT 0,
-                balle_explosive INT DEFAULT 0,
-                balle_incendiaire INT DEFAULT 0,
-                balle_fumigene INT DEFAULT 0,
-                balle_degoutante INT DEFAULT 0,
-                balle_cactus INT DEFAULT 0,
-                balle_venimeuse INT DEFAULT 0,
-                balle_electrique INT DEFAULT 0,
-                balle_gelante INT DEFAULT 0,
-                green_pop INT DEFAULT 0,
-                karate INT DEFAULT 0,
-                taekwondo INT DEFAULT 0,
-                judo INT DEFAULT 0,
-                boxe INT DEFAULT 0,
-                okama_kenpo INT DEFAULT 0,
-                hassoken INT DEFAULT 0,
-                ryusoken INT DEFAULT 0,
-                jambe_noire INT DEFAULT 0,
-                gyojin_karate_simplifie INT DEFAULT 0,
-                rope_action INT DEFAULT 0,
-                ramen_kenpo INT DEFAULT 0,
-                gyojin_karate INT DEFAULT 0,
-                art_martial_tontatta INT DEFAULT 0,
-                jao_kun_do INT DEFAULT 0,
-                electro INT DEFAULT 0,
-                sulong INT DEFAULT 0,
-                style_personnel INT DEFAULT 0,
-                FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
-            )''')
-            await conn.commit()
+    try:
+        # Connexion à la base de données MySQL
+        pool = await aiomysql.create_pool(
+            host=MYSQL_HOST,
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            db=MYSQL_DATABASE,
+            port=3306
+        )
+
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # Création des tables si elles n'existent pas déjà
+                await cursor.execute('''CREATE TABLE IF NOT EXISTS user_stats (
+                    user_id BIGINT PRIMARY KEY,
+                    force INT DEFAULT 5,
+                    vitesse INT DEFAULT 5,
+                    resistance INT DEFAULT 5,
+                    endurance INT DEFAULT 5,
+                    agilite INT DEFAULT 5,
+                    combat INT DEFAULT 5,
+                    FDD INT DEFAULT 0,
+                    haki_armement INT DEFAULT 0,
+                    haki_observation INT DEFAULT 0,
+                    haki_rois INT DEFAULT 0,
+                    points INT DEFAULT 0,
+                    points_spent INT DEFAULT 0
+                )''')
+                await cursor.execute('''CREATE TABLE IF NOT EXISTS fdd_inventory (
+                    user_id BIGINT,
+                    fdd_name VARCHAR(255) UNIQUE,
+                    description TEXT,
+                    eaten ENUM('True', 'False') DEFAULT 'False',
+                    PRIMARY KEY (user_id, fdd_name),
+                    FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+                )''')
+                await cursor.execute('''CREATE TABLE IF NOT EXISTS user_decorations (
+                    user_id BIGINT PRIMARY KEY,
+                    thumbnail_url TEXT,
+                    icon_url TEXT,
+                    main_url TEXT,
+                    color VARCHAR(7) DEFAULT '#FFBF66',
+                    ost_url TEXT,
+                    FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+                )''')
+                await cursor.execute('''CREATE TABLE IF NOT EXISTS skills (
+                    user_id BIGINT,
+                    ittoryu INT DEFAULT 0,
+                    nitoryu INT DEFAULT 0,
+                    santoryu INT DEFAULT 0,
+                    mutoryu INT DEFAULT 0,
+                    style_du_renard_de_feu INT DEFAULT 0,
+                    danse_de_lepee_des_remous INT DEFAULT 0,
+                    style_de_combat_tireur_delite INT DEFAULT 0,
+                    balle_explosive INT DEFAULT 0,
+                    balle_incendiaire INT DEFAULT 0,
+                    balle_fumigene INT DEFAULT 0,
+                    balle_degoutante INT DEFAULT 0,
+                    balle_cactus INT DEFAULT 0,
+                    balle_venimeuse INT DEFAULT 0,
+                    balle_electrique INT DEFAULT 0,
+                    balle_gelante INT DEFAULT 0,
+                    green_pop INT DEFAULT 0,
+                    karate INT DEFAULT 0,
+                    taekwondo INT DEFAULT 0,
+                    judo INT DEFAULT 0,
+                    boxe INT DEFAULT 0,
+                    okama_kenpo INT DEFAULT 0,
+                    hassoken INT DEFAULT 0,
+                    ryusoken INT DEFAULT 0,
+                    jambe_noire INT DEFAULT 0,
+                    gyojin_karate_simplifie INT DEFAULT 0,
+                    rope_action INT DEFAULT 0,
+                    ramen_kenpo INT DEFAULT 0,
+                    gyojin_karate INT DEFAULT 0,
+                    art_martial_tontatta INT DEFAULT 0,
+                    jao_kun_do INT DEFAULT 0,
+                    electro INT DEFAULT 0,
+                    sulong INT DEFAULT 0,
+                    style_personnel INT DEFAULT 0,
+                    FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+                )''')
+                await conn.commit()
+
+        pool.close()
+        await pool.wait_closed()
+        logging.info("Base de données prête et tables créées.")
+
+    except Exception as e:
+        logging.error(f"Erreur lors de la connexion ou de la création des tables : {e}")
+
+
+# Démarre le bot
+bot.run('VOTRE_TOKEN')
 
     pool.close()
     await pool.wait_closed()
