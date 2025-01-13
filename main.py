@@ -122,6 +122,30 @@ async def on_ready():
     pool.close()
     await pool.wait_closed()
 
+async def test_connection():
+    # Informations de connexion
+    host = "sql209.infinityfree.com"
+    port = 3306
+    user = "if0_38099598"
+    password = "4bhv2sctOAw"
+    db = "if0_38099598_bot_db"
+
+    try:
+        pool = await aiomysql.create_pool(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            db=db,
+        )
+        print("Connexion réussie à la base de données MySQL !")
+    except Exception as e:
+        print(f"Erreur lors de la connexion : {e}")
+
+# Lancer l'événement loop
+loop = asyncio.get_event_loop()
+loop.run_until_complete(test_connection())
+
 # Ajoutez vos autres commandes ou événements ici.
 
 
