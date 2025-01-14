@@ -382,19 +382,29 @@ async def edit(ctx, edit_type: str, value: str):
         "ost": "ost_url"
     }[edit_type]
 
-    async with aiosqlite.connect('inventory.db') as db:
-        try:
-            # Mise à jour ou insertion des personnalisations
-            await db.execute(f'''
-                INSERT INTO user_decorations (user_id, {column})
-                VALUES (?, ?)
-                ON CONFLICT(user_id) DO UPDATE SET {column} = excluded.{column}
-            ''', (ctx.author.id, value))
-            await db.commit()
-            await ctx.send(f"{edit_type.capitalize()} mis à jour avec succès ! Elle apparaîtra dans votre commande `?stats`.")
-        except Exception as e:
-            logging.error(f"Erreur lors de la mise à jour de {edit_type} pour l'utilisateur {ctx.author.id}: {e}")
-            await ctx.send("Une erreur est survenue lors de la mise à jour.")
+    try:
+        conn = await asyncpg.connect(
+            user=USER,
+            password=PASSWORD,
+            host=HOST,
+            port=PORT,
+            database=DBNAME
+        )
+
+        # Mise à jour ou insertion des personnalisations
+        await conn.execute(f'''
+            INSERT INTO user_decorations (user_id, {column})
+            VALUES ($1, $2)
+            ON CONFLICT (user_id) DO UPDATE SET {column} = EXCLUDED.{column}
+        ''', ctx.author.id, value)
+
+        await ctx.send(f"{edit_type.capitalize()} mis à jour avec succès ! Elle apparaîtra dans votre commande `?stats`.")
+        await conn.close()
+
+    except Exception as e:
+        logging.error(f"Erreur lors de la mise à jour de {edit_type} pour l'utilisateur {ctx.author.id}: {e}")
+        await ctx.send("Une erreur est survenue lors de la mise à jour.")
+
 
 @bot.command(name='stats')
 async def stats(ctx, member: discord.Member = None):
