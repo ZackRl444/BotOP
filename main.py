@@ -19,7 +19,6 @@ load_dotenv()
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-print("aiomysql is installed and working!")
 
 intents = discord.Intents().all()
 intents.message_content = True
@@ -67,6 +66,7 @@ except Exception as e:
 async def initialize_database():
     try:
         # Connexion à la base de données PostgreSQL
+        logging.info("Tentative de connexion à la base de données...")
         conn = await asyncpg.connect(
             user=USER,
             password=PASSWORD,
@@ -74,87 +74,90 @@ async def initialize_database():
             port=PORT,
             database=DBNAME
         )
-
         logging.info("Connexion réussie à PostgreSQL!")
 
-        print(f"USER={USER}, PASSWORD={PASSWORD}, HOST={HOST}, PORT={PORT}, DBNAME={DBNAME}")
-
+        # Debug des paramètres de connexion
+        logging.debug(f"USER={USER}, PASSWORD=[HIDDEN], HOST={HOST}, PORT={PORT}, DBNAME={DBNAME}")
 
         # Création des tables si elles n'existent pas
-        await conn.execute('''CREATE TABLE IF NOT EXISTS user_stats (
-            user_id BIGINT PRIMARY KEY,
-            force INT DEFAULT 5,
-            vitesse INT DEFAULT 5,
-            resistance INT DEFAULT 5,
-            endurance INT DEFAULT 5,
-            agilite INT DEFAULT 5,
-            combat INT DEFAULT 5,
-            FDD INT DEFAULT 0,
-            haki_armement INT DEFAULT 0,
-            haki_observation INT DEFAULT 0,
-            haki_rois INT DEFAULT 0,
-            points INT DEFAULT 0,
-            points_spent INT DEFAULT 0
-        )''')
+        try:
+            logging.info("Création des tables...")
+            await conn.execute('''CREATE TABLE IF NOT EXISTS user_stats (
+                user_id BIGINT PRIMARY KEY,
+                force INT DEFAULT 5,
+                vitesse INT DEFAULT 5,
+                resistance INT DEFAULT 5,
+                endurance INT DEFAULT 5,
+                agilite INT DEFAULT 5,
+                combat INT DEFAULT 5,
+                FDD INT DEFAULT 0,
+                haki_armement INT DEFAULT 0,
+                haki_observation INT DEFAULT 0,
+                haki_rois INT DEFAULT 0,
+                points INT DEFAULT 0,
+                points_spent INT DEFAULT 0
+            )''')
 
-        await conn.execute('''CREATE TABLE IF NOT EXISTS fdd_inventory (
-            user_id BIGINT,
-            fdd_name VARCHAR(255) UNIQUE,
-            description TEXT,
-            eaten TEXT CHECK (eaten IN ('True', 'False')) DEFAULT 'False',
-            PRIMARY KEY (user_id, fdd_name),
-            FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
-        )''')
+            await conn.execute('''CREATE TABLE IF NOT EXISTS fdd_inventory (
+                user_id BIGINT,
+                fdd_name VARCHAR(255) UNIQUE,
+                description TEXT,
+                eaten TEXT CHECK (eaten IN ('True', 'False')) DEFAULT 'False',
+                PRIMARY KEY (user_id, fdd_name),
+                FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+            )''')
 
-        await conn.execute('''CREATE TABLE IF NOT EXISTS user_decorations (
-            user_id BIGINT PRIMARY KEY,
-            thumbnail_url TEXT,
-            icon_url TEXT,
-            main_url TEXT,
-            color VARCHAR(7) DEFAULT '#FFBF66',
-            ost_url TEXT,
-            FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
-        )''')
+            await conn.execute('''CREATE TABLE IF NOT EXISTS user_decorations (
+                user_id BIGINT PRIMARY KEY,
+                thumbnail_url TEXT,
+                icon_url TEXT,
+                main_url TEXT,
+                color VARCHAR(7) DEFAULT '#FFBF66',
+                ost_url TEXT,
+                FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+            )''')
 
-        await conn.execute('''CREATE TABLE IF NOT EXISTS skills (
-            user_id BIGINT,
-            ittoryu INT DEFAULT 0,
-            nitoryu INT DEFAULT 0,
-            santoryu INT DEFAULT 0,
-            mutoryu INT DEFAULT 0,
-            style_du_renard_de_feu INT DEFAULT 0,
-            danse_de_lepee_des_remous INT DEFAULT 0,
-            style_de_combat_tireur_delite INT DEFAULT 0,
-            balle_explosive INT DEFAULT 0,
-            balle_incendiaire INT DEFAULT 0,
-            balle_fumigene INT DEFAULT 0,
-            balle_degoutante INT DEFAULT 0,
-            balle_cactus INT DEFAULT 0,
-            balle_venimeuse INT DEFAULT 0,
-            balle_electrique INT DEFAULT 0,
-            balle_gelante INT DEFAULT 0,
-            green_pop INT DEFAULT 0,
-            karate INT DEFAULT 0,
-            taekwondo INT DEFAULT 0,
-            judo INT DEFAULT 0,
-            boxe INT DEFAULT 0,
-            okama_kenpo INT DEFAULT 0,
-            hassoken INT DEFAULT 0,
-            ryusoken INT DEFAULT 0,
-            jambe_noire INT DEFAULT 0,
-            gyojin_karate_simplifie INT DEFAULT 0,
-            rope_action INT DEFAULT 0,
-            ramen_kenpo INT DEFAULT 0,
-            gyojin_karate INT DEFAULT 0,
-            art_martial_tontatta INT DEFAULT 0,
-            jao_kun_do INT DEFAULT 0,
-            electro INT DEFAULT 0,
-            sulong INT DEFAULT 0,
-            style_personnel INT DEFAULT 0,
-            FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
-        )''')
+            await conn.execute('''CREATE TABLE IF NOT EXISTS skills (
+                user_id BIGINT,
+                ittoryu INT DEFAULT 0,
+                nitoryu INT DEFAULT 0,
+                santoryu INT DEFAULT 0,
+                mutoryu INT DEFAULT 0,
+                style_du_renard_de_feu INT DEFAULT 0,
+                danse_de_lepee_des_remous INT DEFAULT 0,
+                style_de_combat_tireur_delite INT DEFAULT 0,
+                balle_explosive INT DEFAULT 0,
+                balle_incendiaire INT DEFAULT 0,
+                balle_fumigene INT DEFAULT 0,
+                balle_degoutante INT DEFAULT 0,
+                balle_cactus INT DEFAULT 0,
+                balle_venimeuse INT DEFAULT 0,
+                balle_electrique INT DEFAULT 0,
+                balle_gelante INT DEFAULT 0,
+                green_pop INT DEFAULT 0,
+                karate INT DEFAULT 0,
+                taekwondo INT DEFAULT 0,
+                judo INT DEFAULT 0,
+                boxe INT DEFAULT 0,
+                okama_kenpo INT DEFAULT 0,
+                hassoken INT DEFAULT 0,
+                ryusoken INT DEFAULT 0,
+                jambe_noire INT DEFAULT 0,
+                gyojin_karate_simplifie INT DEFAULT 0,
+                rope_action INT DEFAULT 0,
+                ramen_kenpo INT DEFAULT 0,
+                gyojin_karate INT DEFAULT 0,
+                art_martial_tontatta INT DEFAULT 0,
+                jao_kun_do INT DEFAULT 0,
+                electro INT DEFAULT 0,
+                sulong INT DEFAULT 0,
+                style_personnel INT DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+            )''')
 
-        logging.info("Tables créées ou déjà existantes.")
+            logging.info("Tables créées ou déjà existantes.")
+        except Exception as table_error:
+            logging.error(f"Erreur lors de la création des tables : {table_error}")
 
         # Fermeture de la connexion
         await conn.close()
@@ -162,6 +165,7 @@ async def initialize_database():
 
     except Exception as e:
         logging.error(f"Erreur lors de la connexion ou de la création des tables : {e}")
+
 
 # Exemple d'utilisation dans un bot async (comme discord.py)
 @bot.event
