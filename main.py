@@ -63,129 +63,109 @@ try:
 except Exception as e:
     print(f"Failed to connect: {e}")
 
-@bot.event
-async def on_ready():
-    logging.info('Bot is ready.')
-
+async def initialize_database():
     try:
-        # Connexion à la base de données MySQL
-        pool = await aiomysql.create_pool(
-            host=MYSQL_HOST,
-            user=MYSQL_USER,
-            password=MYSQL_PASSWORD,
-            db=MYSQL_DATABASE,
-            port=3306
+        # Connexion à la base de données PostgreSQL
+        conn = await asyncpg.connect(
+            user=USER,
+            password=PASSWORD,
+            host=HOST,
+            port=PORT,
+            database=DBNAME
         )
 
-        async with pool.acquire() as conn:
-            async with conn.cursor() as cursor:
-                # Création des tables si elles n'existent pas déjà
-                await cursor.execute('''CREATE TABLE IF NOT EXISTS user_stats (
-                    user_id BIGINT PRIMARY KEY,
-                    force INT DEFAULT 5,
-                    vitesse INT DEFAULT 5,
-                    resistance INT DEFAULT 5,
-                    endurance INT DEFAULT 5,
-                    agilite INT DEFAULT 5,
-                    combat INT DEFAULT 5,
-                    FDD INT DEFAULT 0,
-                    haki_armement INT DEFAULT 0,
-                    haki_observation INT DEFAULT 0,
-                    haki_rois INT DEFAULT 0,
-                    points INT DEFAULT 0,
-                    points_spent INT DEFAULT 0
-                )''')
-                await cursor.execute('''CREATE TABLE IF NOT EXISTS fdd_inventory (
-                    user_id BIGINT,
-                    fdd_name VARCHAR(255) UNIQUE,
-                    description TEXT,
-                    eaten ENUM('True', 'False') DEFAULT 'False',
-                    PRIMARY KEY (user_id, fdd_name),
-                    FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
-                )''')
-                await cursor.execute('''CREATE TABLE IF NOT EXISTS user_decorations (
-                    user_id BIGINT PRIMARY KEY,
-                    thumbnail_url TEXT,
-                    icon_url TEXT,
-                    main_url TEXT,
-                    color VARCHAR(7) DEFAULT '#FFBF66',
-                    ost_url TEXT,
-                    FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
-                )''')
-                await cursor.execute('''CREATE TABLE IF NOT EXISTS skills (
-                    user_id BIGINT,
-                    ittoryu INT DEFAULT 0,
-                    nitoryu INT DEFAULT 0,
-                    santoryu INT DEFAULT 0,
-                    mutoryu INT DEFAULT 0,
-                    style_du_renard_de_feu INT DEFAULT 0,
-                    danse_de_lepee_des_remous INT DEFAULT 0,
-                    style_de_combat_tireur_delite INT DEFAULT 0,
-                    balle_explosive INT DEFAULT 0,
-                    balle_incendiaire INT DEFAULT 0,
-                    balle_fumigene INT DEFAULT 0,
-                    balle_degoutante INT DEFAULT 0,
-                    balle_cactus INT DEFAULT 0,
-                    balle_venimeuse INT DEFAULT 0,
-                    balle_electrique INT DEFAULT 0,
-                    balle_gelante INT DEFAULT 0,
-                    green_pop INT DEFAULT 0,
-                    karate INT DEFAULT 0,
-                    taekwondo INT DEFAULT 0,
-                    judo INT DEFAULT 0,
-                    boxe INT DEFAULT 0,
-                    okama_kenpo INT DEFAULT 0,
-                    hassoken INT DEFAULT 0,
-                    ryusoken INT DEFAULT 0,
-                    jambe_noire INT DEFAULT 0,
-                    gyojin_karate_simplifie INT DEFAULT 0,
-                    rope_action INT DEFAULT 0,
-                    ramen_kenpo INT DEFAULT 0,
-                    gyojin_karate INT DEFAULT 0,
-                    art_martial_tontatta INT DEFAULT 0,
-                    jao_kun_do INT DEFAULT 0,
-                    electro INT DEFAULT 0,
-                    sulong INT DEFAULT 0,
-                    style_personnel INT DEFAULT 0,
-                    FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
-                )''')
-                await conn.commit()
+        logging.info("Connexion réussie à PostgreSQL!")
 
-        pool.close()
-        await pool.wait_closed()
-        logging.info("Base de données prête et tables créées.")
+        # Création des tables si elles n'existent pas
+        await conn.execute('''CREATE TABLE IF NOT EXISTS user_stats (
+            user_id BIGINT PRIMARY KEY,
+            force INT DEFAULT 5,
+            vitesse INT DEFAULT 5,
+            resistance INT DEFAULT 5,
+            endurance INT DEFAULT 5,
+            agilite INT DEFAULT 5,
+            combat INT DEFAULT 5,
+            FDD INT DEFAULT 0,
+            haki_armement INT DEFAULT 0,
+            haki_observation INT DEFAULT 0,
+            haki_rois INT DEFAULT 0,
+            points INT DEFAULT 0,
+            points_spent INT DEFAULT 0
+        )''')
+
+        await conn.execute('''CREATE TABLE IF NOT EXISTS fdd_inventory (
+            user_id BIGINT,
+            fdd_name VARCHAR(255) UNIQUE,
+            description TEXT,
+            eaten TEXT CHECK (eaten IN ('True', 'False')) DEFAULT 'False',
+            PRIMARY KEY (user_id, fdd_name),
+            FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+        )''')
+
+        await conn.execute('''CREATE TABLE IF NOT EXISTS user_decorations (
+            user_id BIGINT PRIMARY KEY,
+            thumbnail_url TEXT,
+            icon_url TEXT,
+            main_url TEXT,
+            color VARCHAR(7) DEFAULT '#FFBF66',
+            ost_url TEXT,
+            FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+        )''')
+
+        await conn.execute('''CREATE TABLE IF NOT EXISTS skills (
+            user_id BIGINT,
+            ittoryu INT DEFAULT 0,
+            nitoryu INT DEFAULT 0,
+            santoryu INT DEFAULT 0,
+            mutoryu INT DEFAULT 0,
+            style_du_renard_de_feu INT DEFAULT 0,
+            danse_de_lepee_des_remous INT DEFAULT 0,
+            style_de_combat_tireur_delite INT DEFAULT 0,
+            balle_explosive INT DEFAULT 0,
+            balle_incendiaire INT DEFAULT 0,
+            balle_fumigene INT DEFAULT 0,
+            balle_degoutante INT DEFAULT 0,
+            balle_cactus INT DEFAULT 0,
+            balle_venimeuse INT DEFAULT 0,
+            balle_electrique INT DEFAULT 0,
+            balle_gelante INT DEFAULT 0,
+            green_pop INT DEFAULT 0,
+            karate INT DEFAULT 0,
+            taekwondo INT DEFAULT 0,
+            judo INT DEFAULT 0,
+            boxe INT DEFAULT 0,
+            okama_kenpo INT DEFAULT 0,
+            hassoken INT DEFAULT 0,
+            ryusoken INT DEFAULT 0,
+            jambe_noire INT DEFAULT 0,
+            gyojin_karate_simplifie INT DEFAULT 0,
+            rope_action INT DEFAULT 0,
+            ramen_kenpo INT DEFAULT 0,
+            gyojin_karate INT DEFAULT 0,
+            art_martial_tontatta INT DEFAULT 0,
+            jao_kun_do INT DEFAULT 0,
+            electro INT DEFAULT 0,
+            sulong INT DEFAULT 0,
+            style_personnel INT DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+        )''')
+
+        logging.info("Tables créées ou déjà existantes.")
+
+        # Fermeture de la connexion
+        await conn.close()
+        logging.info("Connexion fermée.")
 
     except Exception as e:
         logging.error(f"Erreur lors de la connexion ou de la création des tables : {e}")
 
-    pool.close()
-    await pool.wait_closed()
+# Exemple d'utilisation dans un bot async (comme discord.py)
+@bot.event
+async def on_ready():
+    logging.info("Bot is ready.")
+    await initialize_database()
 
-async def test_connection():
-    # Informations de connexion
-    host = "sql209.infinityfree.com"
-    port = 3306
-    user = "if0_38099598"
-    password = "4bhv2sctOAw"
-    db = "if0_38099598_bot_db"
 
-    try:
-        pool = await aiomysql.create_pool(
-            host=host,
-            port=port,
-            user=user,
-            password=password,
-            db=db,
-        )
-        print("Connexion réussie à la base de données MySQL !")
-    except Exception as e:
-        print(f"Erreur lors de la connexion : {e}")
-
-# Lancer l'événement loop
-loop = asyncio.get_event_loop()
-loop.run_until_complete(test_connection())
-
-# Ajoutez vos autres commandes ou événements ici.
 
 
 sabreur = {
