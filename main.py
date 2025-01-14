@@ -77,6 +77,9 @@ async def initialize_database():
 
         logging.info("Connexion réussie à PostgreSQL!")
 
+        print(f"USER={USER}, PASSWORD={PASSWORD}, HOST={HOST}, PORT={PORT}, DBNAME={DBNAME}")
+
+
         # Création des tables si elles n'existent pas
         await conn.execute('''CREATE TABLE IF NOT EXISTS user_stats (
             user_id BIGINT PRIMARY KEY,
