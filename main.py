@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from keep_alive import keep_alive
 import shutil
 import psycopg2
+import asyncpg
 
 # Charger les variables d'environnement du fichier .env
 load_dotenv()
