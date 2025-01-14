@@ -63,6 +63,23 @@ try:
 except Exception as e:
     print(f"Failed to connect: {e}")
 
+# Définir une variable globale pour le pool de connexions
+pool = None
+
+async def init_db():
+    global pool
+    try:
+        pool = await asyncpg.create_pool(
+            user=USER,
+            password=PASSWORD,
+            host=HOST,
+            port=PORT,
+            database=DBNAME
+        )
+        logging.info("Connexion au pool de base de données réussie.")
+    except Exception as e:
+        logging.error(f"Erreur de connexion à PostgreSQL : {e}")
+
 async def initialize_database():
     try:
         # Connexion à la base de données PostgreSQL
@@ -172,6 +189,7 @@ async def initialize_database():
 async def on_ready():
     logging.info("Bot is ready.")
     await initialize_database()
+    await init_db()
 
 
 
@@ -412,20 +430,11 @@ async def stats(ctx, member: discord.Member = None):
     logging.info(f"Fetching stats for user: {target_member.id}")
 
     try:
-        conn = await asyncpg.connect(
-            user=USER,
-            password=PASSWORD,
-            host=HOST,
-            port=PORT,
-            database=DBNAME
-        )
-
-        # Récupération des stats utilisateur
-        stats = await conn.fetchrow('SELECT * FROM user_stats WHERE user_id = $1', target_member.id)
+        stats = await get_user_stats(target_member.id)
 
         if not stats:
             logging.debug(f"Aucune stats trouvée pour l'utilisateur {target_member.id}. Création d'une nouvelle entrée.")
-            await conn.execute('INSERT INTO user_stats (user_id) VALUES ($1)', target_member.id)
+            await update_user_stats(target_member.id, 0)  # Crée une nouvelle entrée avec des stats par défaut
             stats = {
                 "user_id": target_member.id,
                 "force": 5,
@@ -442,13 +451,10 @@ async def stats(ctx, member: discord.Member = None):
                 "points_spent": 0
             }
 
-        decorations = await conn.fetchrow(
-            'SELECT thumbnail_url, icon_url, main_url, color, ost_url FROM user_decorations WHERE user_id = $1',
-            target_member.id
-        )
+        decorations = await get_user_decorations(target_member.id)
 
         if decorations:
-            thumbnail_url, icon_url, main_url, color_hex, ost_url = decorations.values()
+            thumbnail_url, icon_url, main_url, color_hex, ost_url = decorations
             color = int(color_hex.lstrip('#'), 16) if color_hex else 0xFFBF66
         else:
             thumbnail_url, icon_url, main_url, color, ost_url = (None, None, None, 0xFFBF66, None)
@@ -481,7 +487,6 @@ async def stats(ctx, member: discord.Member = None):
             embed.add_field(name="OST", value=f"[Cliquez ici pour écouter]({ost_url})", inline=False)
 
         await ctx.send(embed=embed)
-        await conn.close()
 
     except Exception as e:
         logging.error(f"Erreur lors de la récupération des stats: {e}")
