@@ -11,6 +11,10 @@ import os
 from dotenv import load_dotenv
 from keep_alive import keep_alive
 import shutil
+import psycopg2
+
+# Charger les variables d'environnement du fichier .env
+load_dotenv()
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -26,11 +30,38 @@ bot = commands.Bot(command_prefix='?', intents=intents)
 
 elo_emoji = "<:Elo:1289528803462217748>"
 
-# Informations MySQL
-MYSQL_HOST = "sql209.infinityfree.com"
-MYSQL_USER = "if0_38099598"
-MYSQL_PASSWORD = "4bhv2sctOAw"
-MYSQL_DATABASE = "if0_38099598_bot_db"
+USER = os.getenv("user")
+PASSWORD = os.getenv("password")
+HOST = os.getenv("host")
+PORT = os.getenv("port")
+DBNAME = os.getenv("dbname")
+
+# Connect to the database
+try:
+    connection = psycopg2.connect(
+        user=USER,
+        password=PASSWORD,
+        host=HOST,
+        port=PORT,
+        dbname=DBNAME
+    )
+    print("Connection successful!")
+    
+    # Create a cursor to execute SQL queries
+    cursor = connection.cursor()
+    
+    # Example query
+    cursor.execute("SELECT NOW();")
+    result = cursor.fetchone()
+    print("Current Time:", result)
+
+    # Close the cursor and connection
+    cursor.close()
+    connection.close()
+    print("Connection closed.")
+
+except Exception as e:
+    print(f"Failed to connect: {e}")
 
 @bot.event
 async def on_ready():
@@ -5261,8 +5292,7 @@ async def singe(ctx):
     except Exception as e:
         print(f"Une erreur est survenue : {e}")
 
-# Charger les variables d'environnement du fichier .env
-load_dotenv()
+
 
 # Récupérer le token Discord
 TOKEN = os.getenv("DISCORD_TOKEN")
