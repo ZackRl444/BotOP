@@ -322,6 +322,22 @@ skills_liste = {
 }
 
 
+async def get_user_stats(user_id: int):
+    try:
+        async with pool.acquire() as conn:
+            stats = await conn.fetchrow('SELECT * FROM user_stats WHERE user_id = $1', user_id)
+            return stats
+    except Exception as e:
+        logging.error(f"Erreur lors de la récupération des stats pour {user_id}: {e}")
+        return None
+
+async def update_user_stats(user_id: int, new_points: int):
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute('UPDATE user_stats SET points = $1 WHERE user_id = $2', new_points, user_id)
+    except Exception as e:
+        logging.error(f"Erreur lors de la mise à jour des stats pour {user_id}: {e}")
+        
 
 @bot.command()
 async def setup(ctx, user: discord.User):
