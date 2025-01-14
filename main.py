@@ -552,24 +552,38 @@ async def train(ctx):
     if booster_role in ctx.author.roles:
         points_gagnes += 1
 
-    # Sauvegarder les points gagnés
-    async with aiosqlite.connect('inventory.db') as db:
-        async with db.execute('SELECT points FROM user_stats WHERE user_id = ?', (ctx.author.id,)) as cursor:
-            result = await cursor.fetchone()
-            current_points = result[0] if result else 0
+    # Connexion à la base de données PostgreSQL
+    try:
+        conn = await asyncpg.connect(
+            user=USER,
+            password=PASSWORD,
+            host=HOST,
+            port=PORT,
+            database=DBNAME
+        )
+
+        # Récupérer les points actuels
+        result = await conn.fetchrow('SELECT points FROM user_stats WHERE user_id = $1', ctx.author.id)
+        current_points = result['points'] if result else 0
 
         new_points = current_points + points_gagnes
-        await db.execute('UPDATE user_stats SET points = ? WHERE user_id = ?', (new_points, ctx.author.id))
-        await db.commit()
+        # Mise à jour des points dans la base de données
+        await conn.execute('UPDATE user_stats SET points = $1 WHERE user_id = $2', new_points, ctx.author.id)
 
-    user_last_train[ctx.author.id] = current_time
+        user_last_train[ctx.author.id] = current_time
 
-    embed = discord.Embed(
-        title="Entraînement terminé",
-        description=f"Vous avez gagné {points_gagnes} points d'entraînement.",
-        color=0xFFBF66
-    )
-    await ctx.send(embed=embed)
+        embed = discord.Embed(
+            title="Entraînement terminé",
+            description=f"Vous avez gagné {points_gagnes} points d'entraînement.",
+            color=0xFFBF66
+        )
+        await ctx.send(embed=embed)
+        await conn.close()
+
+    except Exception as e:
+        logging.error(f"Erreur lors de l'entraînement de {ctx.author.id}: {e}")
+        await ctx.send("Une erreur est survenue lors de l'entraînement.")
+
 
 
 @bot.command(name='points')
