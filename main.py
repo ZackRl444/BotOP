@@ -411,65 +411,82 @@ async def stats(ctx, member: discord.Member = None):
     target_member = member or ctx.author
     logging.info(f"Fetching stats for user: {target_member.id}")
 
-    async with aiosqlite.connect('inventory.db') as db:
-        try:
-            async with db.execute('SELECT * FROM user_stats WHERE user_id = ?', (target_member.id,)) as cursor:
-                stats = await cursor.fetchone()
+    try:
+        conn = await asyncpg.connect(
+            user=USER,
+            password=PASSWORD,
+            host=HOST,
+            port=PORT,
+            database=DBNAME
+        )
 
-            if not stats:
-                logging.debug(f"Aucune stats trouvée pour l'utilisateur {target_member.id}. Création d'une nouvelle entrée.")
-                await db.execute('INSERT INTO user_stats (user_id) VALUES (?)', (target_member.id,))
-                await db.commit()
-                stats = (target_member.id, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0)
+        # Récupération des stats utilisateur
+        stats = await conn.fetchrow('SELECT * FROM user_stats WHERE user_id = $1', target_member.id)
 
-            (user_id, force, vitesse, resistance, endurance, agilite, combat, FDD, haki_armement, haki_observation, haki_rois, points, points_spent) = stats
+        if not stats:
+            logging.debug(f"Aucune stats trouvée pour l'utilisateur {target_member.id}. Création d'une nouvelle entrée.")
+            await conn.execute('INSERT INTO user_stats (user_id) VALUES ($1)', target_member.id)
+            stats = {
+                "user_id": target_member.id,
+                "force": 5,
+                "vitesse": 5,
+                "resistance": 5,
+                "endurance": 5,
+                "agilite": 5,
+                "combat": 5,
+                "FDD": 0,
+                "haki_armement": 0,
+                "haki_observation": 0,
+                "haki_rois": 0,
+                "points": 0,
+                "points_spent": 0
+            }
 
-            async with db.execute('SELECT thumbnail_url, icon_url, main_url, color, ost_url FROM user_decorations WHERE user_id = ?', (target_member.id,)) as cursor:
-                decorations = await cursor.fetchone()
+        decorations = await conn.fetchrow(
+            'SELECT thumbnail_url, icon_url, main_url, color, ost_url FROM user_decorations WHERE user_id = $1',
+            target_member.id
+        )
 
-            if decorations:
-                thumbnail_url, icon_url, main_url, color_hex, ost_url = decorations
-                # Convertit la couleur en entier si elle est fournie sous forme hexadécimale
-                color = int(color_hex.lstrip('#'), 16) if color_hex else 0xFFBF66
-            else:
-                thumbnail_url, icon_url, main_url, color, ost_url = (None, None, None, 0xFFBF66, None)
+        if decorations:
+            thumbnail_url, icon_url, main_url, color_hex, ost_url = decorations.values()
+            color = int(color_hex.lstrip('#'), 16) if color_hex else 0xFFBF66
+        else:
+            thumbnail_url, icon_url, main_url, color, ost_url = (None, None, None, 0xFFBF66, None)
 
-            embed = discord.Embed(
-                title=f"Statistiques de {target_member.display_name}", 
-                color=color,
-                description=(
-                    f"**Points disponibles : {points}**\n"
-                    f"**Elo : {points_spent}**\n\n"
-                    f"**╔═══════════ ∘◦ ✾ ◦∘ ════════════╗**\n\n"
-                    f"**💪 ・ Force**: ➠ {force}%\n"
-                    f"**🦵 ・ Vitesse**: ➠ {vitesse}%\n"
-                    f"**🛡️ ・ Résistance**: ➠ {resistance}%\n"
-                    f"**🫁 ・ Endurance**: ➠ {endurance}%\n"
-                    f"**🤸‍♂️ ・ Agilité**: ➠ {agilite}%\n\n"
-                    f"**════════════ ∘◦ ⛧ﾐ ◦∘ ════════════**\n\n"
-                    f"**🥊 ・ Maîtrise de combat**: ➠ {combat}%\n"
-                    f"**🍇 ・ Maîtrise de Fruit du démon**: ➠ {FDD}%\n\n"
-                    f"**════════════ ∘◦ ⛧ﾐ ◦∘ ════════════**\n\n"
-                    f"**🦾 ・ Haki de l'armement**: ➠ {haki_armement}%\n"
-                    f"**👁️ ・ Haki de l'observation**: ➠ {haki_observation}%\n"
-                    f"**👑 ・ Haki des Rois**: ➠ {haki_rois}%\n\n"
-                    f"**╚═══════════ ∘◦ ❈ ◦∘ ════════════╝**"
-                )
-            )
+        # Création de l'embed pour afficher les statistiques
+        embed = discord.Embed(
+            title=f"Statistiques de {target_member.display_name}", 
+            color=color,
+            description=(f"**Points disponibles : {stats['points']}**\n"
+                         f"**Elo : {stats['points_spent']}**\n\n"
+                         f"**💪 ・ Force**: ➠ {stats['force']}%\n"
+                         f"**🦵 ・ Vitesse**: ➠ {stats['vitesse']}%\n"
+                         f"**🛡️ ・ Résistance**: ➠ {stats['resistance']}%\n"
+                         f"**🫁 ・ Endurance**: ➠ {stats['endurance']}%\n"
+                         f"**🤸‍♂️ ・ Agilité**: ➠ {stats['agilite']}%\n"
+                         f"**🥊 ・ Maîtrise de combat**: ➠ {stats['combat']}%\n"
+                         f"**🍇 ・ Maîtrise de Fruit du démon**: ➠ {stats['FDD']}%\n"
+                         f"**🦾 ・ Haki de l'armement**: ➠ {stats['haki_armement']}%\n"
+                         f"**👁️ ・ Haki de l'observation**: ➠ {stats['haki_observation']}%\n"
+                         f"**👑 ・ Haki des Rois**: ➠ {stats['haki_rois']}%")
+        )
 
-            if thumbnail_url:
-                embed.set_thumbnail(url=thumbnail_url)
-            if icon_url:
-                embed.set_author(name=target_member.display_name, icon_url=icon_url)
-            if main_url:
-                embed.set_image(url=main_url)
-            if ost_url:
-                embed.add_field(name="OST", value=f"[Cliquez ici pour écouter]({ost_url})", inline=False)
+        if thumbnail_url:
+            embed.set_thumbnail(url=thumbnail_url)
+        if icon_url:
+            embed.set_author(name=target_member.display_name, icon_url=icon_url)
+        if main_url:
+            embed.set_image(url=main_url)
+        if ost_url:
+            embed.add_field(name="OST", value=f"[Cliquez ici pour écouter]({ost_url})", inline=False)
 
-            await ctx.send(embed=embed)
-        except Exception as e:
-            logging.error(f"Erreur lors de la récupération des stats: {e}")
-            await ctx.send("Une erreur est survenue lors de la récupération des statistiques.")
+        await ctx.send(embed=embed)
+        await conn.close()
+
+    except Exception as e:
+        logging.error(f"Erreur lors de la récupération des stats: {e}")
+        await ctx.send("Une erreur est survenue lors de la récupération des statistiques.")
+
         
 train_cooldown = datetime.timedelta(hours=24)  # Cooldown de 24 heures
 user_last_train = {}  # Dictionnaire pour stocker les derniers entraînements des utilisateurs
