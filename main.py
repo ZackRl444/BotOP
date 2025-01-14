@@ -295,17 +295,7 @@ skills_liste = {
     "Personnel": perso
 }
 
-# Localisation du fichier de base de données
-db_file = '/workspace/inventory.db'
-backup_file = '/workspace/inventory_backup.db'
 
-# Copier le fichier vers un fichier de sauvegarde
-shutil.copy(db_file, backup_file)
-
-# Si tu veux compresser ce fichier en .zip
-shutil.make_archive('/workspace/inventory_backup', 'zip', '/workspace', 'inventory.db')
-
-print(f"Backup créé : /workspace/inventory_backup.zip")
 
 @bot.command()
 async def setup(ctx, user: discord.User):
