@@ -457,37 +457,47 @@ async def stats(ctx, member: discord.Member = None):
 
         # Récupération des stats depuis la base de données
         stats_query = await conn.fetchrow(
-            '''SELECT force, vitesse, resistance, endurance, agilite, combat, FDD, haki_armement, 
+            '''SELECT force, vitesse, resistance, endurance, agilite, combat, fdd, haki_armement, 
                       haki_observation, haki_rois, points, points_spent 
                FROM user_stats WHERE user_id = $1''', 
             target_member.id
         )
 
+        # Vérification et initialisation des statistiques
         if not stats_query:
             logging.debug(f"Aucune stats trouvée pour l'utilisateur {target_member.id}. Création d'une nouvelle entrée.")
             # Création d'une nouvelle entrée avec des valeurs par défaut
             await conn.execute(
-                '''INSERT INTO user_stats (user_id) 
-                   VALUES ($1) ON CONFLICT (user_id) DO NOTHING''', 
+                '''INSERT INTO user_stats (user_id, force, vitesse, resistance, endurance, agilite, combat, fdd, 
+                                            haki_armement, haki_observation, haki_rois, points, points_spent) 
+                   VALUES ($1, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0) 
+                   ON CONFLICT (user_id) DO NOTHING''', 
                 target_member.id
             )
             stats = {
                 "force": 5, "vitesse": 5, "resistance": 5, "endurance": 5,
-                "agilite": 5, "combat": 5, "FDD": 0, "haki_armement": 0,
+                "agilite": 5, "combat": 5, "fdd": 0, "haki_armement": 0,
                 "haki_observation": 0, "haki_rois": 0, "points": 0, "points_spent": 0
             }
         else:
+            # Conversion des résultats en dictionnaire
             stats = dict(stats_query)
 
-        # Récupération des décorations depuis la base de données
+        # Récupération des décorations
         decorations_query = await conn.fetchrow(
             '''SELECT thumbnail_url, icon_url, main_url, color, ost_url 
                FROM user_decorations WHERE user_id = $1''', 
             target_member.id
         )
+        decorations = dict(decorations_query) if decorations_query else None
 
-        if decorations_query:
-            thumbnail_url, icon_url, main_url, color_hex, ost_url = decorations_query
+        # Traitement des décorations
+        if decorations:
+            thumbnail_url = decorations.get("thumbnail_url")
+            icon_url = decorations.get("icon_url")
+            main_url = decorations.get("main_url")
+            color_hex = decorations.get("color", "#FFBF66")
+            ost_url = decorations.get("ost_url")
             color = int(color_hex.lstrip('#'), 16) if color_hex else 0xFFBF66
         else:
             thumbnail_url, icon_url, main_url, color, ost_url = (None, None, None, 0xFFBF66, None)
@@ -504,7 +514,7 @@ async def stats(ctx, member: discord.Member = None):
                          f"**🫁 ・ Endurance**: ➠ {stats['endurance']}%\n"
                          f"**🤸‍♂️ ・ Agilité**: ➠ {stats['agilite']}%\n"
                          f"**🥊 ・ Maîtrise de combat**: ➠ {stats['combat']}%\n"
-                         f"**🍇 ・ Maîtrise de Fruit du démon**: ➠ {stats['FDD']}%\n"
+                         f"**🍇 ・ Maîtrise de Fruit du démon**: ➠ {stats['fdd']}%\n"
                          f"**🦾 ・ Haki de l'armement**: ➠ {stats['haki_armement']}%\n"
                          f"**👁️ ・ Haki de l'observation**: ➠ {stats['haki_observation']}%\n"
                          f"**👑 ・ Haki des Rois**: ➠ {stats['haki_rois']}%")
@@ -527,6 +537,7 @@ async def stats(ctx, member: discord.Member = None):
     except Exception as e:
         logging.error(f"Erreur lors de la récupération des stats: {e}")
         await ctx.send("Une erreur est survenue lors de la récupération des statistiques.")
+
 
 
         
