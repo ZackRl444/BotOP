@@ -446,31 +446,48 @@ async def stats(ctx, member: discord.Member = None):
     logging.info(f"Fetching stats for user: {target_member.id}")
 
     try:
-        stats = await get_user_stats(target_member.id)
+        # Connexion à la base de données PostgreSQL
+        conn = await asyncpg.connect(
+            user=USER,
+            password=PASSWORD,
+            host=HOST,
+            port=PORT,
+            database=DBNAME
+        )
 
-        if not stats:
+        # Récupération des stats depuis la base de données
+        stats_query = await conn.fetchrow(
+            '''SELECT force, vitesse, resistance, endurance, agilite, combat, FDD, haki_armement, 
+                      haki_observation, haki_rois, points, points_spent 
+               FROM user_stats WHERE user_id = $1''', 
+            target_member.id
+        )
+
+        if not stats_query:
             logging.debug(f"Aucune stats trouvée pour l'utilisateur {target_member.id}. Création d'une nouvelle entrée.")
-            await update_user_stats(target_member.id, 0)  # Crée une nouvelle entrée avec des stats par défaut
+            # Création d'une nouvelle entrée avec des valeurs par défaut
+            await conn.execute(
+                '''INSERT INTO user_stats (user_id) 
+                   VALUES ($1) ON CONFLICT (user_id) DO NOTHING''', 
+                target_member.id
+            )
             stats = {
-                "user_id": target_member.id,
-                "force": 5,
-                "vitesse": 5,
-                "resistance": 5,
-                "endurance": 5,
-                "agilite": 5,
-                "combat": 5,
-                "FDD": 0,
-                "haki_armement": 0,
-                "haki_observation": 0,
-                "haki_rois": 0,
-                "points": 0,
-                "points_spent": 0
+                "force": 5, "vitesse": 5, "resistance": 5, "endurance": 5,
+                "agilite": 5, "combat": 5, "FDD": 0, "haki_armement": 0,
+                "haki_observation": 0, "haki_rois": 0, "points": 0, "points_spent": 0
             }
+        else:
+            stats = dict(stats_query)
 
-        decorations = await get_user_decorations(target_member.id)
+        # Récupération des décorations depuis la base de données
+        decorations_query = await conn.fetchrow(
+            '''SELECT thumbnail_url, icon_url, main_url, color, ost_url 
+               FROM user_decorations WHERE user_id = $1''', 
+            target_member.id
+        )
 
-        if decorations:
-            thumbnail_url, icon_url, main_url, color_hex, ost_url = decorations
+        if decorations_query:
+            thumbnail_url, icon_url, main_url, color_hex, ost_url = decorations_query
             color = int(color_hex.lstrip('#'), 16) if color_hex else 0xFFBF66
         else:
             thumbnail_url, icon_url, main_url, color, ost_url = (None, None, None, 0xFFBF66, None)
@@ -504,9 +521,13 @@ async def stats(ctx, member: discord.Member = None):
 
         await ctx.send(embed=embed)
 
+        # Fermeture de la connexion
+        await conn.close()
+
     except Exception as e:
         logging.error(f"Erreur lors de la récupération des stats: {e}")
         await ctx.send("Une erreur est survenue lors de la récupération des statistiques.")
+
 
         
 train_cooldown = datetime.timedelta(hours=24)  # Cooldown de 24 heures
