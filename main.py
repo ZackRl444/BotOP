@@ -444,10 +444,13 @@ async def edit(ctx, edit_type: str, value: str):
 async def stats(ctx, member: discord.Member = None):
     global pool
     target_member = member or ctx.author
+    logging.info(f"Fetching stats for user: {target_member.id}")
+    
 
     try:
+        # Utilisation du pool de connexions
         async with pool.acquire() as conn:
-            # Récupération des stats
+            # Récupération des stats depuis la base de données
             stats_query = await conn.fetchrow(
                 '''SELECT force, vitesse, resistance, endurance, agilite, combat, fdd, haki_armement, 
                           haki_observation, haki_rois, points, points_spent 
@@ -455,7 +458,10 @@ async def stats(ctx, member: discord.Member = None):
                 target_member.id
             )
 
+            # Vérification et initialisation des statistiques
             if not stats_query:
+                logging.debug(f"Aucune stats trouvée pour l'utilisateur {target_member.id}. Création d'une nouvelle entrée.")
+                # Création d'une nouvelle entrée avec des valeurs par défaut
                 await conn.execute(
                     '''INSERT INTO user_stats (user_id, force, vitesse, resistance, endurance, agilite, combat, fdd, 
                                                 haki_armement, haki_observation, haki_rois, points, points_spent) 
@@ -469,36 +475,79 @@ async def stats(ctx, member: discord.Member = None):
                     "haki_observation": 0, "haki_rois": 0, "points": 0, "points_spent": 0
                 }
             else:
+                # Conversion des résultats en dictionnaire
                 stats = dict(stats_query)
 
-            # Créer un embed avec les statistiques
+            # Extraire les statistiques pour l'embed
+            force = stats.get("force", 5)
+            vitesse = stats.get("vitesse", 5)
+            resistance = stats.get("resistance", 5)
+            endurance = stats.get("endurance", 5)
+            agilite = stats.get("agilite", 5)
+            combat = stats.get("combat", 5)
+            fdd = stats.get("fdd", 0)
+            haki_armement = stats.get("haki_armement", 0)
+            haki_observation = stats.get("haki_observation", 0)
+            haki_rois = stats.get("haki_rois", 0)
+            points = stats.get("points", 0)
+            points_spent = stats.get("points_spent", 0)
+
+            # Récupération des décorations
+            decorations_query = await conn.fetchrow(
+                '''SELECT thumbnail_url, icon_url, main_url, color, ost_url 
+                   FROM user_decorations WHERE user_id = $1''', 
+                target_member.id
+            )
+            if decorations_query:
+                decorations = dict(decorations_query)
+                thumbnail_url = decorations.get("thumbnail_url")
+                icon_url = decorations.get("icon_url")
+                main_url = decorations.get("main_url")
+                color_hex = decorations.get("color", "#FFBF66")
+                ost_url = decorations.get("ost_url")
+                color = int(color_hex.lstrip('#'), 16) if color_hex else 0xFFBF66
+            else:
+                thumbnail_url, icon_url, main_url, color, ost_url = (None, None, None, 0xFFBF66, None)
+
+            # Création de l'embed pour afficher les statistiques
             embed = discord.Embed(
                 title=f"Statistiques de {target_member.display_name}", 
-                color=0xFFBF66,  # Couleur par défaut
+                color=color,
                 description=(
-                    f"**Points disponibles : {points}**\n"
-                    f"**Elo : {points_spent}**\n\n"
-                    f"**╔═══════════ ∘◦ ✾ ◦∘ ════════════╗**\n\n"
-                    f"**💪 ・ Force**: ➠ {force}%\n"
-                    f"**🦵 ・ Vitesse**: ➠ {vitesse}%\n"
-                    f"**🛡️ ・ Résistance**: ➠ {resistance}%\n"
-                    f"**🫁 ・ Endurance**: ➠ {endurance}%\n"
-                    f"**🤸‍♂️ ・ Agilité**: ➠ {agilite}%\n\n"
-                    f"**════════════ ∘◦ ⛧ﾐ ◦∘ ════════════**\n\n"
-                    f"**🥊 ・ Maîtrise de combat**: ➠ {combat}%\n"
-                    f"**🍇 ・ Maîtrise de Fruit du démon**: ➠ {fdd}%\n\n"
-                    f"**════════════ ∘◦ ⛧ﾐ ◦∘ ════════════**\n\n"
-                    f"**🦾 ・ Haki de l'armement**: ➠ {haki_armement}%\n"
-                    f"**👁️ ・ Haki de l'observation**: ➠ {haki_observation}%\n"
-                    f"**👑 ・ Haki des Rois**: ➠ {haki_rois}%\n\n"
-                    f"**╚═══════════ ∘◦ ❈ ◦∘ ════════════╝**"
-                )
-        )
+                        f"**Points disponibles : {points}**\n"
+                        f"**Elo : {points_spent}**\n\n"
+                        f"**╔═══════════ ∘◦ ✾ ◦∘ ════════════╗**\n\n"
+                        f"**💪 ・ Force**: ➠ {force}%\n"
+                        f"**🦵 ・ Vitesse**: ➠ {vitesse}%\n"
+                        f"**🛡️ ・ Résistance**: ➠ {resistance}%\n"
+                        f"**🫁 ・ Endurance**: ➠ {endurance}%\n"
+                        f"**🤸‍♂️ ・ Agilité**: ➠ {agilite}%\n\n"
+                        f"**════════════ ∘◦ ⛧ﾐ ◦∘ ════════════**\n\n"
+                        f"**🥊 ・ Maîtrise de combat**: ➠ {combat}%\n"
+                        f"**🍇 ・ Maîtrise de Fruit du démon**: ➠ {fdd}%\n\n"
+                        f"**════════════ ∘◦ ⛧ﾐ ◦∘ ════════════**\n\n"
+                        f"**🦾 ・ Haki de l'armement**: ➠ {haki_armement}%\n"
+                        f"**👁️ ・ Haki de l'observation**: ➠ {haki_observation}%\n"
+                        f"**👑 ・ Haki des Rois**: ➠ {haki_rois}%\n\n"
+                        f"**╚═══════════ ∘◦ ❈ ◦∘ ════════════╝**"
+                    )
+            )
+
+            if thumbnail_url:
+                embed.set_thumbnail(url=thumbnail_url)
+            if icon_url:
+                embed.set_author(name=target_member.display_name, icon_url=icon_url)
+            if main_url:
+                embed.set_image(url=main_url)
+            if ost_url:
+                embed.add_field(name="OST", value=f"[Cliquez ici pour écouter]({ost_url})", inline=False)
+
             await ctx.send(embed=embed)
 
     except Exception as e:
-        logging.error(f"Erreur lors de la récupération des stats : {e}")
+        logging.error(f"Erreur lors de la récupération des stats: {e}")
         await ctx.send("Une erreur est survenue lors de la récupération des statistiques.")
+
 
 
         
