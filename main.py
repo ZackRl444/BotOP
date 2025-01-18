@@ -517,7 +517,7 @@ async def stats(ctx, member: discord.Member = None):
                     f"**🤸‍♂️ ・ Agilité**: ➠ {agilite}%\n\n"
                     f"**════════════ ∘◦ ⛧ﾐ ◦∘ ════════════**\n\n"
                     f"**🥊 ・ Maîtrise de combat**: ➠ {combat}%\n"
-                    f"**🍇 ・ Maîtrise de Fruit du démon**: ➠ {FDD}%\n\n"
+                    f"**🍇 ・ Maîtrise de Fruit du démon**: ➠ {fdd}%\n\n"
                     f"**════════════ ∘◦ ⛧ﾐ ◦∘ ════════════**\n\n"
                     f"**🦾 ・ Haki de l'armement**: ➠ {haki_armement}%\n"
                     f"**👁️ ・ Haki de l'observation**: ➠ {haki_observation}%\n"
