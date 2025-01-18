@@ -663,8 +663,7 @@ async def train(ctx):
 async def points(ctx, action: str, amount: int, member: discord.Member = None):
     allowed_role_ids = [1269837965446610985, 1269838005234044958]  # Remplace par l'ID correct
 
-    # Vérification si l'utilisateur possède le rôle admin
-    admin_role = discord.utils.get(ctx.author.roles, id=allowed_role_ids)
+    # Vérification si l'utilisateur possède un rôle autorisé
     if not any(role.id in allowed_role_ids for role in ctx.author.roles):
         await ctx.send("Vous n'avez pas la permission d'utiliser cette commande.")
         return
@@ -679,32 +678,55 @@ async def points(ctx, action: str, amount: int, member: discord.Member = None):
 
     member = member or ctx.author
 
-    async with aiosqlite.connect('inventory.db') as db:
-        async with db.execute('SELECT points FROM user_stats WHERE user_id = ?', (member.id,)) as cursor:
-            result = await cursor.fetchone()
-            current_points = result[0] if result else 0
+    try:
+        # Connexion à la base de données PostgreSQL
+        conn = await asyncpg.connect(
+            user=USER,
+            password=PASSWORD,
+            host=HOST,
+            port=PORT,
+            database=DBNAME
+        )
 
+        # Récupérer les points actuels de l'utilisateur
+        result = await conn.fetchrow('SELECT points FROM user_stats WHERE user_id = $1', member.id)
+        current_points = result['points'] if result else 0
+
+        # Ajouter ou retirer des points
         if action == 'add':
             new_points = current_points + amount
         elif action == 'remove':
             new_points = max(0, current_points - amount)
 
-        await db.execute('UPDATE user_stats SET points = ? WHERE user_id = ?', (new_points, member.id))
-        await db.commit()
+        # Mettre à jour la base de données
+        await conn.execute(
+            '''INSERT INTO user_stats (user_id, points) 
+               VALUES ($1, $2) 
+               ON CONFLICT (user_id) DO UPDATE SET points = $2''',
+            member.id, new_points
+        )
 
+        # Créer et envoyer un embed de confirmation
         embed = discord.Embed(
-        title="Points mis à jour",
-        description=f"{amount} points {action}. Les points de {member.mention} sont déormais à {new_points} .",
-        color=0xFFBF66
+            title="Points mis à jour",
+            description=f"{amount} points {action}. Les points de {member.mention} sont désormais à {new_points}.",
+            color=0xFFBF66
         )
         await ctx.send(embed=embed)
 
+        # Fermeture de la connexion
+        await conn.close()
+
+    except Exception as e:
+        logging.error(f"Erreur lors de la mise à jour des points : {e}")
+        await ctx.send("Une erreur est survenue lors de la mise à jour des points.")
+
+
 @bot.command(name='elo')
-async def points(ctx, action: str, amount: int, member: discord.Member = None):
+async def elo(ctx, action: str, amount: int, member: discord.Member = None):
     allowed_role_ids = [1269837965446610985, 1269838005234044958]  # Remplace par l'ID correct
 
-    # Vérification si l'utilisateur possède le rôle admin
-    admin_role = discord.utils.get(ctx.author.roles, id=allowed_role_ids)
+    # Vérification si l'utilisateur possède un rôle autorisé
     if not any(role.id in allowed_role_ids for role in ctx.author.roles):
         await ctx.send("Vous n'avez pas la permission d'utiliser cette commande.")
         return
@@ -719,25 +741,49 @@ async def points(ctx, action: str, amount: int, member: discord.Member = None):
 
     member = member or ctx.author
 
-    async with aiosqlite.connect('inventory.db') as db:
-        async with db.execute('SELECT points_spent FROM user_stats WHERE user_id = ?', (member.id,)) as cursor:
-            result = await cursor.fetchone()
-            current_points = result[0] if result else 0
+    try:
+        # Connexion à la base de données PostgreSQL
+        conn = await asyncpg.connect(
+            user=USER,
+            password=PASSWORD,
+            host=HOST,
+            port=PORT,
+            database=DBNAME
+        )
 
+        # Récupérer les points_spent actuels de l'utilisateur
+        result = await conn.fetchrow('SELECT points_spent FROM user_stats WHERE user_id = $1', member.id)
+        current_points = result['points_spent'] if result else 0
+
+        # Ajouter ou retirer des points d'Elo
         if action == 'add':
             new_points = current_points + amount
         elif action == 'remove':
             new_points = max(0, current_points - amount)
 
-        await db.execute('UPDATE user_stats SET points_spent = ? WHERE user_id = ?', (new_points, member.id))
-        await db.commit()
+        # Mettre à jour la base de données
+        await conn.execute(
+            '''INSERT INTO user_stats (user_id, points_spent) 
+               VALUES ($1, $2) 
+               ON CONFLICT (user_id) DO UPDATE SET points_spent = $2''',
+            member.id, new_points
+        )
 
+        # Créer et envoyer un embed de confirmation
         embed = discord.Embed(
-        title="Points mis à jour",
-        description=f"{amount} Elo {action}. L'Elo de {member.mention} est déormais à {new_points} .",
-        color=0xFFBF66
+            title="Points Elo mis à jour",
+            description=f"{amount} Elo {action}. L'Elo de {member.mention} est désormais à {new_points}.",
+            color=0xFFBF66
         )
         await ctx.send(embed=embed)
+
+        # Fermeture de la connexion
+        await conn.close()
+
+    except Exception as e:
+        logging.error(f"Erreur lors de la mise à jour des points Elo : {e}")
+        await ctx.send("Une erreur est survenue lors de la mise à jour des points Elo.")
+
 
 
 @bot.command(name="upgrade")
