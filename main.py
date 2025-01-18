@@ -503,10 +503,8 @@ async def stats(ctx, member: discord.Member = None):
                FROM user_decorations WHERE user_id = $1''', 
             target_member.id
         )
-        decorations = dict(decorations_query) if decorations_query else None
-
-        # Traitement des décorations
-        if decorations:
+        if decorations_query:
+            decorations = dict(decorations_query)
             thumbnail_url = decorations.get("thumbnail_url")
             icon_url = decorations.get("icon_url")
             main_url = decorations.get("main_url")
@@ -557,6 +555,7 @@ async def stats(ctx, member: discord.Member = None):
     except Exception as e:
         logging.error(f"Erreur lors de la récupération des stats: {e}")
         await ctx.send("Une erreur est survenue lors de la récupération des statistiques.")
+
 
 
 
