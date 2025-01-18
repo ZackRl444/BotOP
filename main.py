@@ -506,19 +506,24 @@ async def stats(ctx, member: discord.Member = None):
         embed = discord.Embed(
             title=f"Statistiques de {target_member.display_name}", 
             color=color,
-            description=(f"**Points disponibles : {stats['points']}**\n"
-                         f"**Elo : {stats['points_spent']}**\n\n"
-                         f"**💪 ・ Force**: ➠ {stats['force']}%\n"
-                         f"**🦵 ・ Vitesse**: ➠ {stats['vitesse']}%\n"
-                         f"**🛡️ ・ Résistance**: ➠ {stats['resistance']}%\n"
-                         f"**🫁 ・ Endurance**: ➠ {stats['endurance']}%\n"
-                         f"**🤸‍♂️ ・ Agilité**: ➠ {stats['agilite']}%\n"
-                         f"**🥊 ・ Maîtrise de combat**: ➠ {stats['combat']}%\n"
-                         f"**🍇 ・ Maîtrise de Fruit du démon**: ➠ {stats['fdd']}%\n"
-                         f"**🦾 ・ Haki de l'armement**: ➠ {stats['haki_armement']}%\n"
-                         f"**👁️ ・ Haki de l'observation**: ➠ {stats['haki_observation']}%\n"
-                         f"**👑 ・ Haki des Rois**: ➠ {stats['haki_rois']}%")
-        )
+            description=(
+                    f"**Points disponibles : {points}**\n"
+                    f"**Elo : {points_spent}**\n\n"
+                    f"**╔═══════════ ∘◦ ✾ ◦∘ ════════════╗**\n\n"
+                    f"**💪 ・ Force**: ➠ {force}%\n"
+                    f"**🦵 ・ Vitesse**: ➠ {vitesse}%\n"
+                    f"**🛡️ ・ Résistance**: ➠ {resistance}%\n"
+                    f"**🫁 ・ Endurance**: ➠ {endurance}%\n"
+                    f"**🤸‍♂️ ・ Agilité**: ➠ {agilite}%\n\n"
+                    f"**════════════ ∘◦ ⛧ﾐ ◦∘ ════════════**\n\n"
+                    f"**🥊 ・ Maîtrise de combat**: ➠ {combat}%\n"
+                    f"**🍇 ・ Maîtrise de Fruit du démon**: ➠ {FDD}%\n\n"
+                    f"**════════════ ∘◦ ⛧ﾐ ◦∘ ════════════**\n\n"
+                    f"**🦾 ・ Haki de l'armement**: ➠ {haki_armement}%\n"
+                    f"**👁️ ・ Haki de l'observation**: ➠ {haki_observation}%\n"
+                    f"**👑 ・ Haki des Rois**: ➠ {haki_rois}%\n\n"
+                    f"**╚═══════════ ∘◦ ❈ ◦∘ ════════════╝**"
+                )
 
         if thumbnail_url:
             embed.set_thumbnail(url=thumbnail_url)
