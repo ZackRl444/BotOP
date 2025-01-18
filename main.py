@@ -442,83 +442,40 @@ async def edit(ctx, edit_type: str, value: str):
 
 @bot.command(name='stats')
 async def stats(ctx, member: discord.Member = None):
+    global pool
     target_member = member or ctx.author
-    logging.info(f"Fetching stats for user: {target_member.id}")
 
     try:
-        # Connexion à la base de données PostgreSQL
-        conn = await asyncpg.connect(
-            user=USER,
-            password=PASSWORD,
-            host=HOST,
-            port=PORT,
-            database=DBNAME
-        )
-
-        # Récupération des stats depuis la base de données
-        stats_query = await conn.fetchrow(
-            '''SELECT force, vitesse, resistance, endurance, agilite, combat, fdd, haki_armement, 
-                      haki_observation, haki_rois, points, points_spent 
-               FROM user_stats WHERE user_id = $1''', 
-            target_member.id
-        )
-
-        # Vérification et initialisation des statistiques
-        if not stats_query:
-            logging.debug(f"Aucune stats trouvée pour l'utilisateur {target_member.id}. Création d'une nouvelle entrée.")
-            # Création d'une nouvelle entrée avec des valeurs par défaut
-            await conn.execute(
-                '''INSERT INTO user_stats (user_id, force, vitesse, resistance, endurance, agilite, combat, fdd, 
-                                            haki_armement, haki_observation, haki_rois, points, points_spent) 
-                   VALUES ($1, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0) 
-                   ON CONFLICT (user_id) DO NOTHING''', 
+        async with pool.acquire() as conn:
+            # Récupération des stats
+            stats_query = await conn.fetchrow(
+                '''SELECT force, vitesse, resistance, endurance, agilite, combat, fdd, haki_armement, 
+                          haki_observation, haki_rois, points, points_spent 
+                   FROM user_stats WHERE user_id = $1''', 
                 target_member.id
             )
-            stats = {
-                "force": 5, "vitesse": 5, "resistance": 5, "endurance": 5,
-                "agilite": 5, "combat": 5, "fdd": 0, "haki_armement": 0,
-                "haki_observation": 0, "haki_rois": 0, "points": 0, "points_spent": 0
-            }
-        else:
-            # Conversion des résultats en dictionnaire
-            stats = dict(stats_query)
 
-        # Extraire les statistiques pour les utiliser dans l'embed
-        force = stats["force"]
-        vitesse = stats["vitesse"]
-        resistance = stats["resistance"]
-        endurance = stats["endurance"]
-        agilite = stats["agilite"]
-        combat = stats["combat"]
-        fdd = stats["fdd"]
-        haki_armement = stats["haki_armement"]
-        haki_observation = stats["haki_observation"]
-        haki_rois = stats["haki_rois"]
-        points = stats["points"]
-        points_spent = stats["points_spent"]
+            if not stats_query:
+                await conn.execute(
+                    '''INSERT INTO user_stats (user_id, force, vitesse, resistance, endurance, agilite, combat, fdd, 
+                                                haki_armement, haki_observation, haki_rois, points, points_spent) 
+                       VALUES ($1, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0) 
+                       ON CONFLICT (user_id) DO NOTHING''', 
+                    target_member.id
+                )
+                stats = {
+                    "force": 5, "vitesse": 5, "resistance": 5, "endurance": 5,
+                    "agilite": 5, "combat": 5, "fdd": 0, "haki_armement": 0,
+                    "haki_observation": 0, "haki_rois": 0, "points": 0, "points_spent": 0
+                }
+            else:
+                stats = dict(stats_query)
 
-        # Récupération des décorations
-        decorations_query = await conn.fetchrow(
-            '''SELECT thumbnail_url, icon_url, main_url, color, ost_url 
-               FROM user_decorations WHERE user_id = $1''', 
-            target_member.id
-        )
-        if decorations_query:
-            decorations = dict(decorations_query)
-            thumbnail_url = decorations.get("thumbnail_url")
-            icon_url = decorations.get("icon_url")
-            main_url = decorations.get("main_url")
-            color_hex = decorations.get("color", "#FFBF66")
-            ost_url = decorations.get("ost_url")
-            color = int(color_hex.lstrip('#'), 16) if color_hex else 0xFFBF66
-        else:
-            thumbnail_url, icon_url, main_url, color, ost_url = (None, None, None, 0xFFBF66, None)
-
-        # Création de l'embed pour afficher les statistiques
-        embed = discord.Embed(
-            title=f"Statistiques de {target_member.display_name}", 
-            color=color,
-            description=(
+            # Créer un embed avec les statistiques
+            embed = discord.Embed(
+                title=f"Statistiques de {target_member.display_name}", 
+                color=0xFFBF66,  # Couleur par défaut
+                description=(
                     f"**Points disponibles : {points}**\n"
                     f"**Elo : {points_spent}**\n\n"
                     f"**╔═══════════ ∘◦ ✾ ◦∘ ════════════╗**\n\n"
@@ -537,27 +494,11 @@ async def stats(ctx, member: discord.Member = None):
                     f"**╚═══════════ ∘◦ ❈ ◦∘ ════════════╝**"
                 )
         )
-
-        if thumbnail_url:
-            embed.set_thumbnail(url=thumbnail_url)
-        if icon_url:
-            embed.set_author(name=target_member.display_name, icon_url=icon_url)
-        if main_url:
-            embed.set_image(url=main_url)
-        if ost_url:
-            embed.add_field(name="OST", value=f"[Cliquez ici pour écouter]({ost_url})", inline=False)
-
-        await ctx.send(embed=embed)
-
-        # Fermeture de la connexion
-        await conn.close()
+            await ctx.send(embed=embed)
 
     except Exception as e:
-        logging.error(f"Erreur lors de la récupération des stats: {e}")
+        logging.error(f"Erreur lors de la récupération des stats : {e}")
         await ctx.send("Une erreur est survenue lors de la récupération des statistiques.")
-
-
-
 
 
         
