@@ -483,6 +483,20 @@ async def stats(ctx, member: discord.Member = None):
             # Conversion des résultats en dictionnaire
             stats = dict(stats_query)
 
+        # Extraire les statistiques pour les utiliser dans l'embed
+        force = stats["force"]
+        vitesse = stats["vitesse"]
+        resistance = stats["resistance"]
+        endurance = stats["endurance"]
+        agilite = stats["agilite"]
+        combat = stats["combat"]
+        fdd = stats["fdd"]
+        haki_armement = stats["haki_armement"]
+        haki_observation = stats["haki_observation"]
+        haki_rois = stats["haki_rois"]
+        points = stats["points"]
+        points_spent = stats["points_spent"]
+
         # Récupération des décorations
         decorations_query = await conn.fetchrow(
             '''SELECT thumbnail_url, icon_url, main_url, color, ost_url 
@@ -543,6 +557,7 @@ async def stats(ctx, member: discord.Member = None):
     except Exception as e:
         logging.error(f"Erreur lors de la récupération des stats: {e}")
         await ctx.send("Une erreur est survenue lors de la récupération des statistiques.")
+
 
 
 
