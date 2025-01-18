@@ -524,6 +524,7 @@ async def stats(ctx, member: discord.Member = None):
                     f"**👑 ・ Haki des Rois**: ➠ {haki_rois}%\n\n"
                     f"**╚═══════════ ∘◦ ❈ ◦∘ ════════════╝**"
                 )
+        )
 
         if thumbnail_url:
             embed.set_thumbnail(url=thumbnail_url)
