@@ -451,7 +451,7 @@ async def stats(ctx, member: discord.Member = None):
     if not fiche_role:
         embed = discord.Embed(
             title="Fiche non validée",
-            description="Vous ne pouvez pas fouiller car votre fiche n'a pas encore été validée.",
+            description="Vous ne pouvez pas voir vos stats car votre fiche n'a pas encore été validée.",
             color=0xFF0000
         )
         await ctx.send(embed=embed)
@@ -5247,7 +5247,7 @@ async def fouille(ctx):
     if not fiche_role:
         embed = discord.Embed(
             title="Fiche non validée",
-            description="Vous ne pouvez pas entraîner car votre fiche n'a pas encore été validée.",
+            description="Vous ne pouvez pas fouiller car votre fiche n'a pas encore été validée.",
             color=0xFF0000
         )
         await ctx.send(embed=embed)
