@@ -445,6 +445,17 @@ async def stats(ctx, member: discord.Member = None):
     global pool
     target_member = member or ctx.author
     logging.info(f"Fetching stats for user: {target_member.id}")
+
+    fiche_role = discord.utils.get(ctx.author.roles, id=1270083788529074220)
+    
+    if not fiche_role:
+        embed = discord.Embed(
+            title="Fiche non validée",
+            description="Vous ne pouvez pas fouiller car votre fiche n'a pas encore été validée.",
+            color=0xFF0000
+        )
+        await ctx.send(embed=embed)
+        return
     
 
     try:
