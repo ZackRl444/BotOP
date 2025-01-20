@@ -2617,7 +2617,7 @@ async def upgrade(ctx, technique_name: str):
 @bot.command()
 async def roll(ctx, *, arg=None):
     if arg == "D":  # Vérifier que l'argument est bien "D"
-        chance = random.randint(1, 15)  # Génère un nombre entre 1 et 10
+        chance = random.randint(1, 12)  # Génère un nombre entre 1 et 10
         result = "D" if chance == 1 else "Pas D"  # Si c'est 1, alors c'est un "D"
 
         # Création de l'embed avec la couleur FFBF66
