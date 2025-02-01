@@ -788,30 +788,29 @@ async def elo(ctx, action: str, amount: int, member: discord.Member = None):
 
 @bot.command(name="upgrade")
 async def upgrade(ctx):
-    async with aiosqlite.connect('inventory.db') as db:
-        # Récupérer les statistiques actuelles et les points disponibles
-        async with db.execute('SELECT points, points_spent, force, resistance, endurance, vitesse, agilite, combat, FDD, haki_armement, haki_observation, haki_rois FROM user_stats WHERE user_id = ?', (ctx.author.id,)) as cursor:
-            result = await cursor.fetchone()
-
+    async with pool.acquire() as conn:
+        result = await conn.fetchrow(
+            'SELECT points, points_spent, force, resistance, endurance, vitesse, agilite, combat, FDD, haki_armement, haki_observation, haki_rois FROM user_stats WHERE user_id = $1',
+            ctx.author.id
+        )
+        
         if result is None:
             await ctx.send("Aucune donnée trouvée pour cet utilisateur.")
             return
 
         points, points_spent, force, resistance, endurance, vitesse, agilite, combat, FDD, haki_armement, haki_observation, haki_rois = result
-
-        # Récupérer les rôles de l'utilisateur pour vérifier le rôle FDD
-        fdd_role_id = 1269823257079447623  # Remplacez par l'ID réel du rôle FDD
-        hda_role_id = 1269823110958415934  # Remplacez par l'ID réel du rôle HDA
-        hdo_role_id = 1269823083519279155  # Remplacez par l'ID réel du rôle HDO
-        hdr_role_id = 1269823037830856744  # Remplacez par l'ID réel du rôle HDR
+        
+        # Récupération des rôles
+        fdd_role_id = 1269823257079447623
+        hda_role_id = 1269823110958415934
+        hdo_role_id = 1269823083519279155
+        hdr_role_id = 1269823037830856744
 
         has_fdd_role = discord.utils.get(ctx.author.roles, id=fdd_role_id) is not None
         has_hda_role = discord.utils.get(ctx.author.roles, id=hda_role_id) is not None
         has_hdo_role = discord.utils.get(ctx.author.roles, id=hdo_role_id) is not None
         has_hdr_role = discord.utils.get(ctx.author.roles, id=hdr_role_id) is not None
 
-
-        # Création du menu déroulant
         select = Select(
             placeholder="Choisissez une statistique à améliorer...",
             options=[
@@ -829,148 +828,115 @@ async def upgrade(ctx):
         )
 
         async def select_callback(interaction):
-            async with aiosqlite.connect('inventory.db') as db:
-                # Mettre à jour les points et statistiques avant chaque interaction
-                async with db.execute('SELECT points, points_spent, force, resistance, endurance, vitesse, agilite, combat, FDD, haki_armement, haki_observation, haki_rois FROM user_stats WHERE user_id = ?', (ctx.author.id,)) as cursor:
-                    updated_result = await cursor.fetchone()
+            selected_stat = select.values[0]
 
+            # Statistiques et conditions
+            stat_map = {
+                "💪 Force": "force",
+                "🛡️ Résistance": "resistance",
+                "🫁 Endurance": "endurance",
+                "🦵 Vitesse": "vitesse",
+                "🤸‍♂️ Agilité": "agilite",
+                "🥊 Combat": "combat",
+                "🍇 FDD": "FDD",
+                "🦾 HDA": "haki_armement",
+                "👁️ HDO": "haki_observation",
+                "👑 HDR": "haki_rois"
+            }
+            
+            stat_col = stat_map.get(selected_stat)
+            
+            if not stat_col:
+                embed = discord.Embed(
+                    title="Erreur",
+                    description="Statistique sélectionnée invalide.",
+                    color=0xFFBF66
+                )
+                await interaction.response.send_message(embed=embed)
+                return
+
+            # Récupérer les valeurs actuelles des statistiques
+            async with pool.acquire() as conn:
+                updated_result = await conn.fetchrow(
+                    'SELECT points, points_spent, force, resistance, endurance, vitesse, agilite, combat, FDD, haki_armement, haki_observation, haki_rois FROM user_stats WHERE user_id = $1',
+                    ctx.author.id
+                )
                 points, points_spent, force, resistance, endurance, vitesse, agilite, combat, FDD, haki_armement, haki_observation, haki_rois = updated_result
 
-                chosen_stat = select.values[0]
+            # Vérification des conditions pour les améliorations
+            if stat_col == "haki_armement" and not (points_spent >= 500 or has_hda_role and points_spent >= 250):
+                embed = discord.Embed(
+                    title="Condition non remplie",
+                    description="Vous devez avoir 500 Elo ou le rôle HDA et minimum 250 Elo pour améliorer Haki de l'Armement.",
+                    color=0xFFBF66
+                )
+                await interaction.response.send_message(embed=embed)
+                return
+            elif stat_col == "haki_observation" and not (points_spent >= 500 or has_hdo_role and points_spent >= 250):
+                embed = discord.Embed(
+                    title="Condition non remplie",
+                    description="Vous devez avoir 500 Elo ou le rôle HDO et minimum 250 Elo pour améliorer Haki de l'Observation.",
+                    color=0xFFBF66
+                )
+                await interaction.response.send_message(embed=embed)
+                return
+            elif stat_col == "haki_rois" and not (points_spent >= 1000 or has_hdr_role and points_spent >= 500):
+                embed = discord.Embed(
+                    title="Condition non remplie",
+                    description="Vous avez besoin d'au moins 1000 Elo ou le rôle HDR et 500 Elo pour améliorer Haki des Rois.",
+                    color=0xFFBF66
+                )
+                await interaction.response.send_message(embed=embed)
+                return
+            elif stat_col == "FDD" and not has_fdd_role:
+                embed = discord.Embed(
+                    title="Condition non remplie",
+                    description="Vous avez besoin du rôle FDD pour améliorer cette statistique.",
+                    color=0xFFBF66
+                )
+                await interaction.response.send_message(embed=embed)
+                return
 
-                stat_map = {
-                    "💪 Force": "force",
-                    "🛡️ Résistance": "resistance",
-                    "🫁 Endurance": "endurance",
-                    "🦵 Vitesse": "vitesse",
-                    "🤸‍♂️ Agilité": "agilite",
-                    "🥊 Combat": "combat",
-                    "🍇 FDD": "FDD",
-                    "🦾 HDA": "haki_armement",
-                    "👁️ HDO": "haki_observation",
-                    "👑 HDR": "haki_rois"
-                }
+            # Calcul des points requis pour améliorer la statistique
+            current_stat = locals().get(stat_col)  # Utiliser locals pour accéder à la valeur actuelle
+            if current_stat < 50:
+                points_needed = 4 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 10 if stat_col in ["combat", "FDD"] else 14 if stat_col in ["haki_armement", "haki_observation"] else 18
+            elif current_stat < 100:
+                points_needed = 6 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 12 if stat_col in ["combat", "FDD"] else 16 if stat_col in ["haki_armement", "haki_observation"] else 20
+            elif current_stat < 150:
+                points_needed = 8 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 14 if stat_col in ["combat", "FDD"] else 18 if stat_col in ["haki_armement", "haki_observation"] else 22
+            else:
+                points_needed = 10 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 16 if stat_col in ["combat", "FDD"] else 20 if stat_col in ["haki_armement", "haki_observation"] else 25
 
-                stat_col = stat_map.get(chosen_stat)
+            # Vérification des points disponibles avant de procéder à la mise à jour
+            if points < points_needed:
+                embed = discord.Embed(
+                    title="Pas assez de points",
+                    description=f"Vous n'avez pas assez de points pour améliorer cette statistique. Il vous faut {points_needed} points.",
+                    color=0xFFBF66
+                )
+                await interaction.response.send_message(embed=embed)
+                return
 
-                if not stat_col:
-                    embed = Embed(
-                        title="Erreur",
-                        description="Statistique sélectionnée invalide.",
-                        color=0xFFBF66
-                    )
-                    await interaction.response.send_message(embed=embed)
-                    return
+            # Mise à jour de la statistique
+            new_stat = current_stat + 5  # On augmente la statistique de 5% (exemple)
+            await conn.execute(f"UPDATE user_stats SET {stat_col} = $1 WHERE user_id = $2", new_stat, ctx.author.id)
 
-                # Vérifier les conditions Elo pour Haki et FDD
-                if stat_col == "haki_armement" and not (points_spent >= 500 or has_hda_role and points_spent >= 250):
-                    embed = Embed(
-                        title="Condition non remplie",
-                        description="Vous devez avoir 500 Elo ou le rôle HDA et minimum 250 Elo pour améliorer Haki de l'Armement.",
-                        color=0xFFBF66
-                    )
-                    await interaction.response.send_message(embed=embed)
-                    return
-                elif stat_col == "haki_observation" and not (points_spent >= 500 or has_hdo_role and points_spent >= 250):
-                    embed = Embed(
-                        title="Condition non remplie",
-                        description="Vous devez avoir 500 Elo ou le rôle HDO et minimum 250 Elo pour améliorer Haki de l'Observation.",
-                        color=0xFFBF66
-                    )
-                    await interaction.response.send_message(embed=embed)
-                    return
-                elif stat_col == "haki_rois" and not (points_spent >= 1000 or has_hdr_role and points_spent >= 500):
-                    embed = Embed(
-                        title="Condition non remplie",
-                        description="Vous avez besoin d'au moins 1000 Elo ou le rôle HDR et 500 Elo pour améliorer Haki des Rois.",
-                        color=0xFFBF66
-                    )
-                    await interaction.response.send_message(embed=embed)
-                    return
-                elif stat_col == "FDD" and not has_fdd_role:
-                    embed = Embed(
-                        title="Condition non remplie",
-                        description="Vous avez besoin du rôle FDD pour améliorer cette statistique.",
-                        color=0xFFBF66
-                    )
-                    await interaction.response.send_message(embed=embed)
-                    return
-
-                # Récupérer la valeur actuelle de la statistique choisie
-                stats = {
-                    "force": force,
-                    "resistance": resistance,
-                    "endurance": endurance,
-                    "vitesse": vitesse,
-                    "agilite": agilite,
-                    "combat": combat,
-                    "FDD": FDD,
-                    "haki_armement": haki_armement,
-                    "haki_observation": haki_observation,
-                    "haki_rois": haki_rois
-                }
-
-                current_stat = stats.get(stat_col)
-
-                if current_stat is None:
-                    embed = Embed(
-                        title="Erreur",
-                        description="Erreur de récupération des données.",
-                        color=0xFFBF66
-                    )
-                    await interaction.response.send_message(embed=embed)
-                    return
-
-                # Calcul des points requis
-                if current_stat < 50:
-                    points_needed = 4 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 10 if stat_col in ["combat", "FDD"] else 14 if stat_col in ["haki_armement", "haki_observation"] else 18
-                elif current_stat < 100:
-                    points_needed = 6 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 12 if stat_col in ["combat", "FDD"] else 16 if stat_col in ["haki_armement", "haki_observation"] else 20
-                elif current_stat < 150:
-                    points_needed = 8 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 14 if stat_col in ["combat", "FDD"] else 18 if stat_col in ["haki_armement", "haki_observation"] else 22
-                else:
-                    points_needed = 10 if stat_col in ["force", "resistance", "endurance", "vitesse", "agilite"] else 16 if stat_col in ["combat", "FDD"] else 20 if stat_col in ["haki_armement", "haki_observation"] else 25
-
-                # Vérification des points
-                if points >= points_needed:
-                    # Mise à jour de la statistique
-                    new_stat = current_stat + 5
-                    update_query = f"UPDATE user_stats SET {stat_col} = ? WHERE user_id = ?"
-                    await db.execute(update_query, (new_stat, ctx.author.id))
-                    await db.commit()
-
-                    # Mise à jour des points
-                    new_points = points - points_needed
-                    await db.execute("UPDATE user_stats SET points = ?, points_spent = ? WHERE user_id = ?", (new_points, points_spent + points_needed, ctx.author.id))
-                    await db.commit()
-
-                    # Envoi du message de confirmation
-                    embed = Embed(
-                        title="Amélioration réussie",
-                        description=f"Votre {chosen_stat} est maintenant à {new_stat}%. Il vous reste {new_points} points.",
-                        color=0xFFBF66
-                    )
-                    await interaction.response.send_message(embed=embed)
-                else:
-                    embed = Embed(
-                        title="Points insuffisants",
-                        description=f"Vous avez besoin de {points_needed} points pour améliorer cette statistique.",
-                        color=0xFFBF66
-                    )
-                    await interaction.response.send_message(embed=embed)
+            # Mise à jour des points
+            new_points = points - points_needed
+            await conn.execute("UPDATE user_stats SET points = $1, points_spent = $2 WHERE user_id = $3", new_points, points_spent + points_needed, ctx.author.id)
+            
+            embed = discord.Embed(
+                title="Statistique améliorée",
+                description=f"Votre {selected_stat} a été améliorée de 5% ! Vous avez maintenant {new_stat}%. Vous avez dépensé {points_needed} points.",
+                color=0x00FF00
+            )
+            await interaction.response.send_message(embed=embed)
 
         select.callback = select_callback
         view = View()
         view.add_item(select)
-
-
-        # Envoyer le menu déroulant avec embed
-        embed = Embed(
-            title="Amélioration des Statistiques",
-            description=f"Vous avez actuellement **{points} points** et **{points_spent} Elo**. Choisissez une statistique à améliorer :",
-            color=0xFFBF66
-        )
-        await ctx.send(embed=embed, view=view)
+        await ctx.send("Choisissez une statistique à améliorer.", view=view)
 
 @bot.command(name="nerf")
 async def nerf(ctx, stat: str, percentage: int, member: discord.Member):
