@@ -843,9 +843,9 @@ async def upgrade(ctx):
                 "👁️ HDO": "haki_observation",
                 "👑 HDR": "haki_rois"
             }
-            
+
             stat_col = stat_map.get(selected_stat)
-            
+
             if not stat_col:
                 embed = discord.Embed(
                     title="Erreur",
@@ -855,7 +855,7 @@ async def upgrade(ctx):
                 await interaction.response.send_message(embed=embed)
                 return
 
-            # Récupérer les valeurs actuelles des statistiques
+            # Acquire a new connection for the callback
             async with pool.acquire() as conn:
                 updated_result = await conn.fetchrow(
                     'SELECT points, points_spent, force, resistance, endurance, vitesse, agilite, combat, FDD, haki_armement, haki_observation, haki_rois FROM user_stats WHERE user_id = $1',
@@ -937,6 +937,7 @@ async def upgrade(ctx):
         view = View()
         view.add_item(select)
         await ctx.send("Choisissez une statistique à améliorer.", view=view)
+
 
 @bot.command(name="nerf")
 async def nerf(ctx, stat: str, percentage: int, member: discord.Member):
