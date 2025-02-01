@@ -191,7 +191,7 @@ async def on_ready():
     await initialize_database()
     await init_db()
 
-
+  print(f"USER={USER}, PASSWORD=[HIDDEN], HOST={HOST}, PORT={PORT}, DBNAME={DBNAME}")
 
 
 sabreur = {
