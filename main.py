@@ -929,7 +929,7 @@ async def upgrade(ctx):
                 embed = discord.Embed(
                     title="Statistique améliorée",
                     description=f"Votre {selected_stat} a été améliorée de 5% ! Vous avez maintenant {new_stat}%. Vous avez dépensé {points_needed} points.",
-                    color=0x00FF00
+                    color=0xFFBF66
                 )
                 await interaction.response.send_message(embed=embed)
 
