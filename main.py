@@ -982,75 +982,59 @@ async def nerf(ctx, stat: str, percentage: int, member: discord.Member):
 @bot.command(name="top")
 async def top(ctx, page: int = 1):
     fiche_role_id = 1270083788529074220  # Remplace avec l'ID réel du rôle Fiche validée
-    print("Commande ?top déclenchée.")
+    logging.info("Commande ?top déclenchée.")
     
     role_fiche = discord.utils.get(ctx.guild.roles, id=fiche_role_id)
     if role_fiche is None:
-        print("Le rôle Fiche validée est introuvable.")
-        await ctx.send("Le rôle Fiche validée n'existe pas sur ce serveur.")
+        logging.error("Le rôle Fiche validée est introuvable.")
+        await ctx.send("Le rôle Fiche validée n'existe pas.")
         return
     
-    print("Rôle Fiche validée trouvé.")
-    
-    # Connexion à la base de données
-    async with aiosqlite.connect('inventory.db') as db:
-        print("Connexion à la base de données réussie.")
-        async with db.execute('''
-            SELECT user_id, points_spent
-            FROM user_stats
-            ORDER BY points_spent DESC
-        ''') as cursor:
-            all_users = await cursor.fetchall()
-            print(f"Nombre d'utilisateurs récupérés depuis la base de données : {len(all_users)}")
-
-    # Récupérer directement les membres ayant le rôle "Fiche validée"
-    valid_users = []
-    for user_id, points_spent in all_users:
+    async with pool.acquire() as conn:
         try:
-            member = await ctx.guild.fetch_member(user_id)  # Récupérer directement le membre depuis l'API
-            if role_fiche in member.roles:
-                print(f"L'utilisateur {member.display_name} a le rôle Fiche validée.")
-                valid_users.append((member, points_spent))
-            else:
-                print(f"L'utilisateur {member.display_name} n'a pas le rôle Fiche validée.")
-        except discord.NotFound:
-            print(f"Utilisateur introuvable : {user_id}")
-        except discord.Forbidden:
-            print(f"Accès refusé pour l'utilisateur : {user_id}")
+            query = """
+                SELECT user_id, points_spent FROM user_stats
+                ORDER BY points_spent DESC
+            """
+            all_users = await conn.fetch(query)
+            
+            valid_users = []
+            for record in all_users:
+                user_id, points_spent = record["user_id"], record["points_spent"]
+                try:
+                    member = await ctx.guild.fetch_member(user_id)
+                    if role_fiche in member.roles:
+                        valid_users.append((member, points_spent))
+                except discord.NotFound:
+                    logging.warning(f"Utilisateur introuvable : {user_id}")
+                except discord.Forbidden:
+                    logging.warning(f"Accès refusé pour l'utilisateur : {user_id}")
+            
+            if not valid_users:
+                await ctx.send("Aucun utilisateur avec le rôle Fiche validée n'a été trouvé.")
+                return
 
-    print(f"Nombre d'utilisateurs avec le rôle Fiche validée : {len(valid_users)}")
-    
-    if not valid_users:
-        await ctx.send("Aucun utilisateur avec le rôle Fiche validée n'a été trouvé.")
-        return
+            users_per_page = 10
+            total_pages = (len(valid_users) - 1) // users_per_page + 1
+            
+            if page < 1 or page > total_pages:
+                await ctx.send(f"Page invalide. Veuillez entrer un nombre de page entre 1 et {total_pages}.")
+                return
 
-    # Pagination (10 utilisateurs par page)
-    users_per_page = 10
-    total_pages = (len(valid_users) - 1) // users_per_page + 1
-    print(f"Total de pages : {total_pages}")
-
-    if page < 1 or page > total_pages:
-        print(f"Page {page} invalide.")
-        await ctx.send(f"Page invalide. Veuillez entrer un nombre de page entre 1 et {total_pages}.")
-        return
-
-    start_index = (page - 1) * users_per_page
-    end_index = start_index + users_per_page
-    users_on_page = valid_users[start_index:end_index]
-
-    # Créer l'embed de classement
-    embed = discord.Embed(title=f"Classement Elo (Page {page}/{total_pages})", color=0xFFBF66)
-    for rank, (member, points_spent) in enumerate(users_on_page, start=start_index + 1):
-        embed.add_field(name=f"{rank}/ {member.display_name}", value=f"***{elo_emoji} Elo: {points_spent} \n\n***", inline=False)
-    
-    print(f"Affichage des utilisateurs sur la page {page}.")
-    
-    # Ajouter une note pour la pagination
-    embed.set_footer(text=f"Page {page}/{total_pages} • Utilisez ?top <numéro de page> pour naviguer.")
-
-    await ctx.send(embed=embed)
-    print("Classement envoyé.")
-
+            start_index = (page - 1) * users_per_page
+            end_index = start_index + users_per_page
+            users_on_page = valid_users[start_index:end_index]
+            
+            embed = discord.Embed(title=f"Classement Elo (Page {page}/{total_pages})", color=0xFFBF66)
+            for rank, (member, points_spent) in enumerate(users_on_page, start=start_index + 1):
+                embed.add_field(name=f"{rank}/ {member.display_name}", value=f"***Elo: {points_spent}***", inline=False)
+            
+            embed.set_footer(text=f"Page {page}/{total_pages} • Utilisez ?top <numéro de page> pour naviguer.")
+            await ctx.send(embed=embed)
+            logging.info("Classement envoyé.")
+        except Exception as e:
+            logging.error(f"Erreur lors de la récupération du classement : {e}")
+            await ctx.send("Une erreur s'est produite lors de la récupération du classement.")
 
 
 @bot.event
