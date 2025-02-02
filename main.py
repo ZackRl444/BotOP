@@ -967,13 +967,14 @@ async def nerf(ctx, stat: str, percentage: int, member: discord.Member):
             current_value = result[stat.lower()]
             
             # Calcul du nouveau pourcentage
-            new_value = max(0, current_value - (current_value * percentage // 100))
+            reduction_amount = (current_value * percentage) // 100
+            new_value = max(0, current_value - reduction_amount)
             
             # Mise à jour de la statistique dans la base de données
             update_query = f"UPDATE user_stats SET {stat.lower()} = $1 WHERE user_id = $2"
             await conn.execute(update_query, new_value, member.id)
             
-            await ctx.send(f"La statistique **{stat}** de {member.mention} a été réduite de {percentage}%. Elle est maintenant à {new_value}.")
+            await ctx.send(f"La statistique **{stat}** de {member.mention} a été réduite de {percentage}% ({reduction_amount} points). Elle est maintenant à {new_value}.")
         except Exception as e:
             logging.error(f"Erreur lors de la mise à jour de la statistique : {e}")
             await ctx.send("Une erreur s'est produite lors de la mise à jour des statistiques.")
