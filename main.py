@@ -943,35 +943,40 @@ async def upgrade(ctx):
 @bot.command(name="nerf")
 async def nerf(ctx, stat: str, percentage: int, member: discord.Member):
     allowed_role_ids = [1269837965446610985, 1269838005234044958]  # Remplace par l'ID correct
-    # Vérification si l'utilisateur possède le rôle admin
-    admin_role = discord.utils.get(ctx.author.roles, id=allowed_role_ids)
+    
+    # Vérification si l'utilisateur possède un rôle autorisé
     if not any(role.id in allowed_role_ids for role in ctx.author.roles):
         await ctx.send("Vous n'avez pas la permission d'utiliser cette commande.")
         return
     
-    if stat.lower() not in ["force", "resistance", "endurance", "vitesse", "agilite", "combat", "FDD", "haki_armement", "haki_observation", "haki_rois"]:
+    valid_stats = ["force", "resistance", "endurance", "vitesse", "agilite", "combat", "fdd", "haki_armement", "haki_observation", "haki_rois"]
+    if stat.lower() not in valid_stats:
         await ctx.send(f"La statistique '{stat}' est invalide.")
         return
-
-    async with aiosqlite.connect('inventory.db') as db:
-        async with db.execute(f'SELECT {stat.lower()} FROM user_stats WHERE user_id = ?', (member.id,)) as cursor:
-            result = await cursor.fetchone()
-
-        if result is None:
-            await ctx.send(f"Aucune donnée trouvée pour l'utilisateur {member.display_name}.")
-            return
-
-        current_value = result[0]
-
-        # Calcul du nouveau pourcentage
-        new_value = max(0, current_value - percentage)
-
-        # Mise à jour de la statistique dans la base de données
-        await db.execute(f'UPDATE user_stats SET {stat.lower()} = ? WHERE user_id = ?', (new_value, member.id))
-        await db.commit()
-
-    await ctx.send(f"La statistique **{stat}** de {member.mention} a été réduite de {percentage}%. Elle est maintenant à {new_value}%.")
-
+    
+    async with pool.acquire() as conn:
+        try:
+            # Récupérer la valeur actuelle de la statistique
+            query = f"SELECT {stat.lower()} FROM user_stats WHERE user_id = $1"
+            result = await conn.fetchrow(query, member.id)
+            
+            if result is None:
+                await ctx.send(f"Aucune donnée trouvée pour l'utilisateur {member.display_name}.")
+                return
+            
+            current_value = result[stat.lower()]
+            
+            # Calcul du nouveau pourcentage
+            new_value = max(0, current_value - (current_value * percentage // 100))
+            
+            # Mise à jour de la statistique dans la base de données
+            update_query = f"UPDATE user_stats SET {stat.lower()} = $1 WHERE user_id = $2"
+            await conn.execute(update_query, new_value, member.id)
+            
+            await ctx.send(f"La statistique **{stat}** de {member.mention} a été réduite de {percentage}%. Elle est maintenant à {new_value}.")
+        except Exception as e:
+            logging.error(f"Erreur lors de la mise à jour de la statistique : {e}")
+            await ctx.send("Une erreur s'est produite lors de la mise à jour des statistiques.")
 
 @bot.command(name="top")
 async def top(ctx, page: int = 1):
