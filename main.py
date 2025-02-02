@@ -967,7 +967,7 @@ async def nerf(ctx, stat: str, percentage: int, member: discord.Member):
             current_value = result[stat.lower()]
             
             # Calcul du nouveau pourcentage
-            reduction_amount = (current_value * percentage) // 100
+            reduction_amount = percentage
             new_value = max(0, current_value - reduction_amount)
             
             # Mise à jour de la statistique dans la base de données
